@@ -1,0 +1,1150 @@
+[
+  {
+    "name": "中泊町",
+    "population": 559,
+    "city": false,
+    "x": 0.327662,
+    "y": 0.420057
+  },
+  {
+    "name": "室蘭市",
+    "population": 4119,
+    "city": true,
+    "x": 0.013895,
+    "y": 0.684548
+  },
+  {
+    "name": "森町",
+    "population": 716,
+    "city": false,
+    "x": 0.056832,
+    "y": 0.531144
+  },
+  {
+    "name": "七飯町",
+    "population": 1384,
+    "city": false,
+    "x": 0.109568,
+    "y": 0.562208
+  },
+  {
+    "name": "鹿部町",
+    "population": 188,
+    "city": false,
+    "x": 0.080776,
+    "y": 0.618237
+  },
+  {
+    "name": "八雲町",
+    "population": 791,
+    "city": false,
+    "x": 0.014318,
+    "y": 0.427604
+  },
+  {
+    "name": "花巻市",
+    "population": 4659,
+    "city": true,
+    "x": 0.709278,
+    "y": 0.583437
+  },
+  {
+    "name": "乙部町",
+    "population": 170,
+    "city": false,
+    "x": 0.081107,
+    "y": 0.366236
+  },
+  {
+    "name": "江差町",
+    "population": 371,
+    "city": false,
+    "x": 0.104828,
+    "y": 0.35783
+  },
+  {
+    "name": "上ノ国町",
+    "population": 215,
+    "city": false,
+    "x": 0.120966,
+    "y": 0.352005
+  },
+  {
+    "name": "松前町",
+    "population": 313,
+    "city": false,
+    "x": 0.209632,
+    "y": 0.328695
+  },
+  {
+    "name": "福島町",
+    "population": 189,
+    "city": false,
+    "x": 0.199526,
+    "y": 0.3818
+  },
+  {
+    "name": "知内町",
+    "population": 208,
+    "city": false,
+    "x": 0.175494,
+    "y": 0.447888
+  },
+  {
+    "name": "木古内町",
+    "population": 191,
+    "city": false,
+    "x": 0.156672,
+    "y": 0.458862
+  },
+  {
+    "name": "北斗市",
+    "population": 2215,
+    "city": true,
+    "x": 0.125989,
+    "y": 0.543603
+  },
+  {
+    "name": "盛岡市",
+    "population": 14486,
+    "city": true,
+    "x": 0.637216,
+    "y": 0.612889
+  },
+  {
+    "name": "湯沢市",
+    "population": 2104,
+    "city": true,
+    "x": 0.748862,
+    "y": 0.349732
+  },
+  {
+    "name": "大間町",
+    "population": 261,
+    "city": false,
+    "x": 0.203136,
+    "y": 0.617871
+  },
+  {
+    "name": "北上市",
+    "population": 4652,
+    "city": true,
+    "x": 0.732744,
+    "y": 0.577029
+  },
+  {
+    "name": "久慈市",
+    "population": 1652,
+    "city": true,
+    "x": 0.535461,
+    "y": 0.860234
+  },
+  {
+    "name": "岩泉町",
+    "population": 492,
+    "city": false,
+    "x": 0.61703,
+    "y": 0.849819
+  },
+  {
+    "name": "一関市",
+    "population": 5596,
+    "city": true,
+    "x": 0.814174,
+    "y": 0.563871
+  },
+  {
+    "name": "平泉町",
+    "population": 393,
+    "city": false,
+    "x": 0.80199,
+    "y": 0.56192
+  },
+  {
+    "name": "奥州市",
+    "population": 5646,
+    "city": true,
+    "x": 0.76614,
+    "y": 0.579006
+  },
+  {
+    "name": "水沢",
+    "population": 3000,
+    "city": false,
+    "x": 0.767502,
+    "y": 0.573499
+  },
+  {
+    "name": "金ケ崎町",
+    "population": 794,
+    "city": false,
+    "x": 0.753813,
+    "y": 0.573344
+  },
+  {
+    "name": "陸前高田市",
+    "population": 913,
+    "city": true,
+    "x": 0.804407,
+    "y": 0.749478
+  },
+  {
+    "name": "住田町",
+    "population": 286,
+    "city": false,
+    "x": 0.775158,
+    "y": 0.734898
+  },
+  {
+    "name": "遠野市",
+    "population": 1268,
+    "city": true,
+    "x": 0.730805,
+    "y": 0.728835
+  },
+  {
+    "name": "大船渡市",
+    "population": 1736,
+    "city": true,
+    "x": 0.791748,
+    "y": 0.779528
+  },
+  {
+    "name": "釜石市",
+    "population": 1603,
+    "city": true,
+    "x": 0.750462,
+    "y": 0.852862
+  },
+  {
+    "name": "大槌町",
+    "population": 587,
+    "city": false,
+    "x": 0.731611,
+    "y": 0.862191
+  },
+  {
+    "name": "雫石町",
+    "population": 849,
+    "city": false,
+    "x": 0.635074,
+    "y": 0.548693
+  },
+  {
+    "name": "矢巾町",
+    "population": 1383,
+    "city": false,
+    "x": 0.659325,
+    "y": 0.603926
+  },
+  {
+    "name": "紫波町",
+    "population": 1630,
+    "city": false,
+    "x": 0.671546,
+    "y": 0.605722
+  },
+  {
+    "name": "滝沢市",
+    "population": 2778,
+    "city": true,
+    "x": 0.628101,
+    "y": 0.586841
+  },
+  {
+    "name": "山田町",
+    "population": 791,
+    "city": false,
+    "x": 0.707284,
+    "y": 0.885259
+  },
+  {
+    "name": "宮古市",
+    "population": 2518,
+    "city": true,
+    "x": 0.667326,
+    "y": 0.892979
+  },
+  {
+    "name": "板柳町",
+    "population": 696,
+    "city": false,
+    "x": 0.390665,
+    "y": 0.41477
+  },
+  {
+    "name": "三戸町",
+    "population": 506,
+    "city": false,
+    "x": 0.481238,
+    "y": 0.68493
+  },
+  {
+    "name": "南部町",
+    "population": 915,
+    "city": false,
+    "x": 0.462901,
+    "y": 0.733607
+  },
+  {
+    "name": "黒石市",
+    "population": 1597,
+    "city": true,
+    "x": 0.406031,
+    "y": 0.461091
+  },
+  {
+    "name": "平内町",
+    "population": 557,
+    "city": false,
+    "x": 0.34609,
+    "y": 0.605056
+  },
+  {
+    "name": "東北町",
+    "population": 897,
+    "city": false,
+    "x": 0.398856,
+    "y": 0.702738
+  },
+  {
+    "name": "六戸町",
+    "population": 521,
+    "city": false,
+    "x": 0.428142,
+    "y": 0.720614
+  },
+  {
+    "name": "つがる市",
+    "population": 1546,
+    "city": true,
+    "x": 0.362513,
+    "y": 0.392859
+  },
+  {
+    "name": "藤崎町",
+    "population": 758,
+    "city": false,
+    "x": 0.400966,
+    "y": 0.428809
+  },
+  {
+    "name": "五所川原市",
+    "population": 2570,
+    "city": true,
+    "x": 0.364075,
+    "y": 0.416281
+  },
+  {
+    "name": "深浦町",
+    "population": 421,
+    "city": false,
+    "x": 0.39172,
+    "y": 0.222407
+  },
+  {
+    "name": "弘前市",
+    "population": 8423,
+    "city": true,
+    "x": 0.412715,
+    "y": 0.412142
+  },
+  {
+    "name": "七戸町",
+    "population": 785,
+    "city": false,
+    "x": 0.392953,
+    "y": 0.667981
+  },
+  {
+    "name": "五戸町",
+    "population": 871,
+    "city": false,
+    "x": 0.446264,
+    "y": 0.710382
+  },
+  {
+    "name": "十和田市",
+    "population": 3018,
+    "city": true,
+    "x": 0.425025,
+    "y": 0.678182
+  },
+  {
+    "name": "野辺地町",
+    "population": 676,
+    "city": false,
+    "x": 0.364042,
+    "y": 0.663394
+  },
+  {
+    "name": "今別町",
+    "population": 137,
+    "city": false,
+    "x": 0.276034,
+    "y": 0.448665
+  },
+  {
+    "name": "むつ市",
+    "population": 2705,
+    "city": true,
+    "x": 0.263439,
+    "y": 0.705409
+  },
+  {
+    "name": "大鰐町",
+    "population": 483,
+    "city": false,
+    "x": 0.434751,
+    "y": 0.445048
+  },
+  {
+    "name": "田子町",
+    "population": 277,
+    "city": false,
+    "x": 0.488125,
+    "y": 0.644874
+  },
+  {
+    "name": "鰺ヶ沢町",
+    "population": 506,
+    "city": false,
+    "x": 0.365722,
+    "y": 0.339121
+  },
+  {
+    "name": "平川市",
+    "population": 1528,
+    "city": true,
+    "x": 0.419302,
+    "y": 0.448031
+  },
+  {
+    "name": "外ヶ浜町",
+    "population": 309,
+    "city": false,
+    "x": 0.311963,
+    "y": 0.495066
+  },
+  {
+    "name": "鶴田町",
+    "population": 669,
+    "city": false,
+    "x": 0.37528,
+    "y": 0.407608
+  },
+  {
+    "name": "おいらせ町",
+    "population": 1211,
+    "city": false,
+    "x": 0.432022,
+    "y": 0.74619
+  },
+  {
+    "name": "八戸市",
+    "population": 11170,
+    "city": true,
+    "x": 0.454249,
+    "y": 0.773997
+  },
+  {
+    "name": "階上町",
+    "population": 701,
+    "city": false,
+    "x": 0.470966,
+    "y": 0.818453
+  },
+  {
+    "name": "青森市",
+    "population": 13759,
+    "city": true,
+    "x": 0.366531,
+    "y": 0.524856
+  },
+  {
+    "name": "三沢市",
+    "population": 1957,
+    "city": true,
+    "x": 0.41168,
+    "y": 0.740222
+  },
+  {
+    "name": "横浜町",
+    "population": 226,
+    "city": false,
+    "x": 0.314586,
+    "y": 0.717599
+  },
+  {
+    "name": "加美町",
+    "population": 1037,
+    "city": false,
+    "x": 0.892103,
+    "y": 0.44824
+  },
+  {
+    "name": "石巻市",
+    "population": 6569,
+    "city": true,
+    "x": 0.932386,
+    "y": 0.601706
+  },
+  {
+    "name": "泉区",
+    "population": 10326,
+    "city": false,
+    "x": 0.948701,
+    "y": 0.44554
+  },
+  {
+    "name": "涌谷町",
+    "population": 707,
+    "city": false,
+    "x": 0.904833,
+    "y": 0.544485
+  },
+  {
+    "name": "美里町",
+    "population": 892,
+    "city": false,
+    "x": 0.902344,
+    "y": 0.519235
+  },
+  {
+    "name": "大崎市",
+    "population": 6055,
+    "city": true,
+    "x": 0.89274,
+    "y": 0.484707
+  },
+  {
+    "name": "女川町",
+    "population": 289,
+    "city": false,
+    "x": 0.932519,
+    "y": 0.652504
+  },
+  {
+    "name": "大和町",
+    "population": 1395,
+    "city": false,
+    "x": 0.923447,
+    "y": 0.45275
+  },
+  {
+    "name": "名取市",
+    "population": 3988,
+    "city": true,
+    "x": 0.984186,
+    "y": 0.441428
+  },
+  {
+    "name": "若林区",
+    "population": 7112,
+    "city": false,
+    "x": 0.967828,
+    "y": 0.448241
+  },
+  {
+    "name": "蔵王町",
+    "population": 541,
+    "city": false,
+    "x": 0.996304,
+    "y": 0.354379
+  },
+  {
+    "name": "村田町",
+    "population": 487,
+    "city": false,
+    "x": 0.992908,
+    "y": 0.378224
+  },
+  {
+    "name": "太白区",
+    "population": 11853,
+    "city": false,
+    "x": 0.971879,
+    "y": 0.438886
+  },
+  {
+    "name": "栗原市",
+    "population": 2993,
+    "city": true,
+    "x": 0.8591,
+    "y": 0.515724
+  },
+  {
+    "name": "色麻町",
+    "population": 302,
+    "city": false,
+    "x": 0.897252,
+    "y": 0.445362
+  },
+  {
+    "name": "七ヶ浜町",
+    "population": 871,
+    "city": false,
+    "x": 0.957178,
+    "y": 0.508014
+  },
+  {
+    "name": "仙台市",
+    "population": 54719,
+    "city": true,
+    "x": 0.961818,
+    "y": 0.438165
+  },
+  {
+    "name": "多賀城市",
+    "population": 3090,
+    "city": true,
+    "x": 0.958536,
+    "y": 0.487825
+  },
+  {
+    "name": "東松島市",
+    "population": 1881,
+    "city": true,
+    "x": 0.932349,
+    "y": 0.568478
+  },
+  {
+    "name": "青葉区",
+    "population": 15749,
+    "city": false,
+    "x": 0.961533,
+    "y": 0.438726
+  },
+  {
+    "name": "大郷町",
+    "population": 370,
+    "city": false,
+    "x": 0.928758,
+    "y": 0.494436
+  },
+  {
+    "name": "岩沼市",
+    "population": 2147,
+    "city": true,
+    "x": 0.999052,
+    "y": 0.430342
+  },
+  {
+    "name": "宮城野区",
+    "population": 9677,
+    "city": false,
+    "x": 0.962984,
+    "y": 0.452647
+  },
+  {
+    "name": "気仙沼市",
+    "population": 2779,
+    "city": true,
+    "x": 0.829029,
+    "y": 0.721138
+  },
+  {
+    "name": "川崎町",
+    "population": 390,
+    "city": false,
+    "x": 0.97788,
+    "y": 0.352757
+  },
+  {
+    "name": "利府町",
+    "population": 728,
+    "city": false,
+    "x": 0.949682,
+    "y": 0.479296
+  },
+  {
+    "name": "塩竈市",
+    "population": 2574,
+    "city": true,
+    "x": 0.954201,
+    "y": 0.495137
+  },
+  {
+    "name": "三種町",
+    "population": 691,
+    "city": false,
+    "x": 0.521446,
+    "y": 0.222049
+  },
+  {
+    "name": "能代市",
+    "population": 2498,
+    "city": true,
+    "x": 0.496056,
+    "y": 0.235581
+  },
+  {
+    "name": "八郎潟町",
+    "population": 287,
+    "city": false,
+    "x": 0.558426,
+    "y": 0.238565
+  },
+  {
+    "name": "藤里町",
+    "population": 159,
+    "city": false,
+    "x": 0.485073,
+    "y": 0.32294
+  },
+  {
+    "name": "由利本荘市",
+    "population": 3735,
+    "city": true,
+    "x": 0.688853,
+    "y": 0.201019
+  },
+  {
+    "name": "横手市",
+    "population": 4277,
+    "city": true,
+    "x": 0.715723,
+    "y": 0.382732
+  },
+  {
+    "name": "羽後町",
+    "population": 765,
+    "city": false,
+    "x": 0.739157,
+    "y": 0.321935
+  },
+  {
+    "name": "大仙市",
+    "population": 3882,
+    "city": true,
+    "x": 0.681703,
+    "y": 0.357258
+  },
+  {
+    "name": "にかほ市",
+    "population": 1171,
+    "city": true,
+    "x": 0.728395,
+    "y": 0.141229
+  },
+  {
+    "name": "潟上市",
+    "population": 1586,
+    "city": true,
+    "x": 0.578641,
+    "y": 0.212383
+  },
+  {
+    "name": "井川町",
+    "population": 232,
+    "city": false,
+    "x": 0.566724,
+    "y": 0.239713
+  },
+  {
+    "name": "大館市",
+    "population": 3461,
+    "city": true,
+    "x": 0.492608,
+    "y": 0.431234
+  },
+  {
+    "name": "秋田市",
+    "population": 15383,
+    "city": true,
+    "x": 0.612443,
+    "y": 0.237637
+  },
+  {
+    "name": "仙北市",
+    "population": 1230,
+    "city": true,
+    "x": 0.629359,
+    "y": 0.461126
+  },
+  {
+    "name": "鹿角市",
+    "population": 1454,
+    "city": true,
+    "x": 0.51011,
+    "y": 0.50815
+  },
+  {
+    "name": "男鹿市",
+    "population": 1257,
+    "city": true,
+    "x": 0.568543,
+    "y": 0.154539
+  },
+  {
+    "name": "八峰町",
+    "population": 351,
+    "city": false,
+    "x": 0.471223,
+    "y": 0.245214
+  },
+  {
+    "name": "北秋田市",
+    "population": 1509,
+    "city": true,
+    "x": 0.499512,
+    "y": 0.359332
+  },
+  {
+    "name": "五城目町",
+    "population": 450,
+    "city": false,
+    "x": 0.560385,
+    "y": 0.252068
+  },
+  {
+    "name": "村山市",
+    "population": 1125,
+    "city": true,
+    "x": 0.902936,
+    "y": 0.274221
+  },
+  {
+    "name": "東根市",
+    "population": 2384,
+    "city": true,
+    "x": 0.915117,
+    "y": 0.275356
+  },
+  {
+    "name": "朝日町",
+    "population": 355,
+    "city": false,
+    "x": 0.940403,
+    "y": 0.180942
+  },
+  {
+    "name": "上山市",
+    "population": 1455,
+    "city": true,
+    "x": 0.976922,
+    "y": 0.217036
+  },
+  {
+    "name": "真室川町",
+    "population": 406,
+    "city": false,
+    "x": 0.814653,
+    "y": 0.247132
+  },
+  {
+    "name": "長井市",
+    "population": 1327,
+    "city": true,
+    "x": 0.982134,
+    "y": 0.131172
+  },
+  {
+    "name": "中山町",
+    "population": 568,
+    "city": false,
+    "x": 0.935387,
+    "y": 0.231714
+  },
+  {
+    "name": "酒田市",
+    "population": 5013,
+    "city": true,
+    "x": 0.793392,
+    "y": 0.101132
+  },
+  {
+    "name": "飯豊町",
+    "population": 365,
+    "city": false,
+    "x": 0.995013,
+    "y": 0.111505
+  },
+  {
+    "name": "庄内町",
+    "population": 1083,
+    "city": false,
+    "x": 0.809619,
+    "y": 0.122134
+  },
+  {
+    "name": "西川町",
+    "population": 281,
+    "city": false,
+    "x": 0.911425,
+    "y": 0.187837
+  },
+  {
+    "name": "寒河江市",
+    "population": 2009,
+    "city": true,
+    "x": 0.924351,
+    "y": 0.231552
+  },
+  {
+    "name": "小国町",
+    "population": 393,
+    "city": false,
+    "x": 0.986577,
+    "y": 0.0249
+  },
+  {
+    "name": "天童市",
+    "population": 3107,
+    "city": true,
+    "x": 0.930551,
+    "y": 0.266877
+  },
+  {
+    "name": "最上町",
+    "population": 445,
+    "city": false,
+    "x": 0.842743,
+    "y": 0.337659
+  },
+  {
+    "name": "尾花沢市",
+    "population": 748,
+    "city": true,
+    "x": 0.876666,
+    "y": 0.289168
+  },
+  {
+    "name": "山辺町",
+    "population": 718,
+    "city": false,
+    "x": 0.94494,
+    "y": 0.222062
+  },
+  {
+    "name": "鶴岡市",
+    "population": 6117,
+    "city": true,
+    "x": 0.836264,
+    "y": 0.088165
+  },
+  {
+    "name": "白鷹町",
+    "population": 708,
+    "city": false,
+    "x": 0.965961,
+    "y": 0.158076
+  },
+  {
+    "name": "河北町",
+    "population": 947,
+    "city": false,
+    "x": 0.914758,
+    "y": 0.247639
+  },
+  {
+    "name": "大江町",
+    "population": 423,
+    "city": false,
+    "x": 0.923019,
+    "y": 0.206765
+  },
+  {
+    "name": "南陽市",
+    "population": 1521,
+    "city": true,
+    "x": 0.996037,
+    "y": 0.169484
+  },
+  {
+    "name": "舟形町",
+    "population": 281,
+    "city": false,
+    "x": 0.854192,
+    "y": 0.262875
+  },
+  {
+    "name": "金山町",
+    "population": 291,
+    "city": false,
+    "x": 0.81044,
+    "y": 0.27951
+  },
+  {
+    "name": "山形市",
+    "population": 12379,
+    "city": true,
+    "x": 0.954241,
+    "y": 0.24818
+  },
+  {
+    "name": "三川町",
+    "population": 386,
+    "city": false,
+    "x": 0.821258,
+    "y": 0.099714
+  },
+  {
+    "name": "新庄市",
+    "population": 1721,
+    "city": true,
+    "x": 0.836981,
+    "y": 0.260239
+  },
+  {
+    "name": "一戸町",
+    "population": 645,
+    "city": false,
+    "x": 0.520742,
+    "y": 0.689542
+  },
+  {
+    "name": "八幡平市",
+    "population": 1201,
+    "city": true,
+    "x": 0.57631,
+    "y": 0.596
+  },
+  {
+    "name": "軽米町",
+    "population": 466,
+    "city": false,
+    "x": 0.497305,
+    "y": 0.754563
+  },
+  {
+    "name": "二戸市",
+    "population": 1275,
+    "city": true,
+    "x": 0.507295,
+    "y": 0.695828
+  },
+  {
+    "name": "岩手町",
+    "population": 684,
+    "city": false,
+    "x": 0.57537,
+    "y": 0.647457
+  },
+  {
+    "name": "洋野町",
+    "population": 834,
+    "city": false,
+    "x": 0.483241,
+    "y": 0.851016
+  },
+  {
+    "name": "葛巻町",
+    "population": 317,
+    "city": false,
+    "x": 0.564047,
+    "y": 0.731068
+  },
+  {
+    "name": "奥尻町",
+    "population": 120,
+    "city": false,
+    "x": 0.019698,
+    "y": 0.153773
+  },
+  {
+    "name": "西和賀町",
+    "population": 294,
+    "city": false,
+    "x": 0.718938,
+    "y": 0.458819
+  },
+  {
+    "name": "美郷町",
+    "population": 1013,
+    "city": false,
+    "x": 0.681796,
+    "y": 0.395839
+  },
+  {
+    "name": "小坂町",
+    "population": 249,
+    "city": false,
+    "x": 0.4815,
+    "y": 0.495493
+  },
+  {
+    "name": "登米市",
+    "population": 1357,
+    "city": true,
+    "x": 0.871156,
+    "y": 0.573498
+  },
+  {
+    "name": "松島町",
+    "population": 642,
+    "city": false,
+    "x": 0.940074,
+    "y": 0.514653
+  },
+  {
+    "name": "厚沢部町",
+    "population": 179,
+    "city": false,
+    "x": 0.09442,
+    "y": 0.3957
+  },
+  {
+    "name": "函館市",
+    "population": 12554,
+    "city": true,
+    "x": 0.14074,
+    "y": 0.567901
+  },
+  {
+    "name": "富谷市",
+    "population": 2618,
+    "city": true,
+    "x": 0.932198,
+    "y": 0.454165
+  },
+  {
+    "name": "遊佐町",
+    "population": 710,
+    "city": false,
+    "x": 0.771783,
+    "y": 0.132093
+  },
+  {
+    "name": "大石田町",
+    "population": 367,
+    "city": false,
+    "x": 0.877566,
+    "y": 0.276836
+  },
+  {
+    "name": "南三陸町",
+    "population": 567,
+    "city": false,
+    "x": 0.879138,
+    "y": 0.671226
+  },
+  {
+    "name": "浪岡",
+    "population": 3000,
+    "city": false,
+    "x": 0.389884,
+    "y": 0.463468
+  },
+  {
+    "name": "蟹田",
+    "population": 3000,
+    "city": false,
+    "x": 0.310121,
+    "y": 0.4984
+  },
+  {
+    "name": "平舘",
+    "population": 3000,
+    "city": false,
+    "x": 0.283218,
+    "y": 0.503129
+  },
+  {
+    "name": "三厩",
+    "population": 3000,
+    "city": false,
+    "x": 0.271025,
+    "y": 0.429326
+  }
+]
