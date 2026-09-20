@@ -1,0 +1,261 @@
+[
+  {
+    "name": "松本市",
+    "population": 2275,
+    "city": true,
+    "x": 0.639699,
+    "y": 0.320933
+  },
+  {
+    "name": "大町市",
+    "population": 260,
+    "city": true,
+    "x": 0.383398,
+    "y": 0.229072
+  },
+  {
+    "name": "箕輪町",
+    "population": 252,
+    "city": false,
+    "x": 0.951077,
+    "y": 0.33136
+  },
+  {
+    "name": "辰野町",
+    "population": 197,
+    "city": false,
+    "x": 0.886472,
+    "y": 0.335645
+  },
+  {
+    "name": "下諏訪町",
+    "population": 202,
+    "city": false,
+    "x": 0.802499,
+    "y": 0.407825
+  },
+  {
+    "name": "岡谷市",
+    "population": 501,
+    "city": true,
+    "x": 0.805252,
+    "y": 0.383944
+  },
+  {
+    "name": "塩尻市",
+    "population": 669,
+    "city": true,
+    "x": 0.749086,
+    "y": 0.308527
+  },
+  {
+    "name": "諏訪市",
+    "population": 501,
+    "city": true,
+    "x": 0.831839,
+    "y": 0.434187
+  },
+  {
+    "name": "茅野市",
+    "population": 556,
+    "city": true,
+    "x": 0.873734,
+    "y": 0.469222
+  },
+  {
+    "name": "富士見町",
+    "population": 144,
+    "city": false,
+    "x": 0.951842,
+    "y": 0.533005
+  },
+  {
+    "name": "佐久穂町",
+    "population": 111,
+    "city": false,
+    "x": 0.7149,
+    "y": 0.722285
+  },
+  {
+    "name": "長和町",
+    "population": 61,
+    "city": false,
+    "x": 0.609124,
+    "y": 0.546407
+  },
+  {
+    "name": "小海町",
+    "population": 47,
+    "city": false,
+    "x": 0.777729,
+    "y": 0.72253
+  },
+  {
+    "name": "安曇野市",
+    "population": 948,
+    "city": true,
+    "x": 0.575679,
+    "y": 0.271647
+  },
+  {
+    "name": "池田町",
+    "population": 99,
+    "city": false,
+    "x": 0.462483,
+    "y": 0.247551
+  },
+  {
+    "name": "長野市",
+    "population": 3727,
+    "city": true,
+    "x": 0.241974,
+    "y": 0.497171
+  },
+  {
+    "name": "小布施町",
+    "population": 107,
+    "city": false,
+    "x": 0.194203,
+    "y": 0.588872
+  },
+  {
+    "name": "信濃町",
+    "population": 84,
+    "city": false,
+    "x": 0.08836,
+    "y": 0.506679
+  },
+  {
+    "name": "中野市",
+    "population": 423,
+    "city": true,
+    "x": 0.15152,
+    "y": 0.633236
+  },
+  {
+    "name": "東吾妻町",
+    "population": 140,
+    "city": false,
+    "x": 0.316807,
+    "y": 0.98501
+  },
+  {
+    "name": "下仁田町",
+    "population": 75,
+    "city": false,
+    "x": 0.664515,
+    "y": 0.96049
+  },
+  {
+    "name": "長野原町",
+    "population": 55,
+    "city": false,
+    "x": 0.343756,
+    "y": 0.852055
+  },
+  {
+    "name": "草津町",
+    "population": 65,
+    "city": false,
+    "x": 0.269098,
+    "y": 0.810053
+  },
+  {
+    "name": "千曲市",
+    "population": 588,
+    "city": true,
+    "x": 0.35353,
+    "y": 0.438977
+  },
+  {
+    "name": "上田市",
+    "population": 1569,
+    "city": true,
+    "x": 0.481091,
+    "y": 0.539493
+  },
+  {
+    "name": "坂城町",
+    "population": 148,
+    "city": false,
+    "x": 0.423355,
+    "y": 0.485376
+  },
+  {
+    "name": "須坂市",
+    "population": 510,
+    "city": true,
+    "x": 0.239537,
+    "y": 0.584773
+  },
+  {
+    "name": "飯綱町",
+    "population": 110,
+    "city": false,
+    "x": 0.138953,
+    "y": 0.52899
+  },
+  {
+    "name": "山ノ内町",
+    "population": 124,
+    "city": false,
+    "x": 0.148623,
+    "y": 0.667049
+  },
+  {
+    "name": "飯山市",
+    "population": 195,
+    "city": true,
+    "x": 0.044278,
+    "y": 0.630231
+  },
+  {
+    "name": "佐久市",
+    "population": 986,
+    "city": true,
+    "x": 0.629456,
+    "y": 0.71703
+  },
+  {
+    "name": "立科町",
+    "population": 72,
+    "city": false,
+    "x": 0.606993,
+    "y": 0.591613
+  },
+  {
+    "name": "東御市",
+    "population": 296,
+    "city": true,
+    "x": 0.522438,
+    "y": 0.603021
+  },
+  {
+    "name": "御代田町",
+    "population": 151,
+    "city": false,
+    "x": 0.558077,
+    "y": 0.740726
+  },
+  {
+    "name": "軽井沢町",
+    "population": 189,
+    "city": false,
+    "x": 0.533211,
+    "y": 0.810764
+  },
+  {
+    "name": "信州新町",
+    "population": 600,
+    "city": false,
+    "x": 0.321324,
+    "y": 0.350143
+  },
+  {
+    "name": "小諸市",
+    "population": 416,
+    "city": true,
+    "x": 0.553576,
+    "y": 0.677427
+  }
+]
