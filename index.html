@@ -781,6 +781,7 @@
         maskNoFeatures: "No coastline or water feature found for this selection, so the land mask was skipped and the sea keeps the DEM's own shape. If you did pick a coastal area, Overpass was most likely busy - just generate again.",
         maskAllLand: "Coastline found, but nothing is deeper than the seed threshold (lowest elevation {x} m), so everything was treated as land. Lower \"Deep-water seed depth\" to fix this.",
         maskTilesMissing: "({n} terrain tile(s) were missing and filled with sea level.)",
+        maskUnreliable: "The OSM land mask called {p}% of the clearly-land area water, so it was skipped and the DEM's own coast was kept instead.",
         maskReady: "Mask: {c} coastline ways / {a} water areas / {r} rivers, seed {d} m",
         basemapTitle: "Base map provider",
         bmCarto: "CARTO",
@@ -836,6 +837,7 @@
         maskNoFeatures: "选区内没有找到海岸线/水体要素,已跳过陆地掩膜,海面沿用高程判定。如果你确实选的是靠海区域,多半是 Overpass 繁忙,再点一次生成即可。",
         maskAllLand: "找到海岸线,但没有任何像素深于种子门槛(选区最低高程 {x} m),已按全陆地处理。把「深水种子水深」调浅可以修正。",
         maskTilesMissing: "(有 {n} 张地形瓦片缺失,已按海平面补齐,可能影响水陆判定。)",
+        maskUnreliable: "OSM 陆地掩膜把 {p}% 的明确陆地判成了水面,与高程数据冲突,已跳过掩膜,海面沿用高程判定。",
         maskReady: "掩膜:海岸线 {c} 段 / 水体 {a} 个 / 河流 {r} 条,深水种子 {d} m",
         basemapTitle: "切换底图数据源",
         bmCarto: "CARTO 底图",
@@ -891,6 +893,7 @@
         maskNoFeatures: "この選択範囲に海岸線・水域が見つからないため、ランドマスクをスキップしました(海はDEMの判定をそのまま使用)。沿岸部を選んだのであれば、Overpass が混雑している可能性が高いので、もう一度生成してください。",
         maskAllLand: "海岸線はありますが、シードしきい値より深い画素がありません(最低標高 {x} m)。全陸地として扱いました。「深水シード深度」を浅くしてください。",
         maskTilesMissing: "(地形タイル {n} 枚が欠落し、海面で補完しました。水陸判定に影響する可能性があります。)",
+        maskUnreliable: "OSM ランドマスクが明らかな陸地の {p}% を水域と判定し、標高データと矛盾するため、マスクをスキップしました。",
         maskReady: "マスク: 海岸線 {c} / 水域 {a} / 河川 {r}、深水シード {d} m",
         basemapTitle: "ベースマップの切り替え",
         bmCarto: "CARTO ベースマップ",
@@ -1364,6 +1367,13 @@
     // Pure computational core of the OSM land/water mask. No DOM access, so this part
     // can be unit tested outside the browser (see _analysis/mask_core_test.mjs).
     const CM_MASK_MAX_SIDE = 4096;   // mask raster resolution cap (avoids huge canvases)
+    // Reference for "this cell is certainly land" in the DEM cross-check. An absolute threshold is
+    // wrong for high-altitude lakes (Lake Biwa's surface is 85 m), so the reference is derived from
+    // the selection's own relief and the check is skipped when there is no relief to judge by.
+    const CM_MASK_LAND_REF_MIN_M = 50;      // metres above the lowest point, at minimum
+    const CM_MASK_LAND_REF_FRACTION = 0.5;  // ... or half of the observed relief
+    const CM_MASK_MIN_RELIEF_M = 100;       // below this relief the check cannot judge anything
+    const CM_MASK_DROWN_LIMIT = 0.25;       // share of "certainly land" the mask may still call water
 
     /**
      * Builds the world (mercator) -> mask-pixel mapping for the current selection.
@@ -1443,11 +1453,117 @@
       }
       return count;
     }
+    /** True when a way's geometry already forms a closed ring (first point == last point). */
+    function cmIsClosedRing(geometry) {
+      if (!Array.isArray(geometry) || geometry.length < 4) return false;
+      const a = geometry[0], b = geometry[geometry.length - 1];
+      return Math.abs(a.lat - b.lat) < 1e-9 && Math.abs(a.lon - b.lon) < 1e-9;
+    }
+
+    /**
+     * Chains multipolygon member arcs back into closed rings.
+     *
+     * OSM stores the rings of large water bodies as many open arcs (Lake Biwa: 78 members of
+     * which only 22 are closed). Filling each arc on its own paints the area between the arc and
+     * its chord, which can flood an entire selection with water - so arcs must be joined first.
+     *
+     * @param members array of point arrays ({lat, lon})
+     * @returns {{rings: Array<Array<object>>, open: number}} `open` counts the leftover chains
+     *          that could not be closed - those must never be filled.
+     */
+    function cmAssembleRings(members) {
+      const key = (p) => p.lat.toFixed(7) + ',' + p.lon.toFixed(7);
+      const used = new Array(members.length).fill(false);
+      const rings = [];
+      let open = 0;
+      for (let i = 0; i < members.length; i++) {
+        if (used[i]) continue;
+        used[i] = true;
+        const ring = members[i].slice();
+        let closed = false;
+        for (;;) {
+          const end = ring[ring.length - 1];
+          if (ring.length > 3 && key(end) === key(ring[0])) { closed = true; break; }
+          // Exactly one unused arc may continue the ring. If several meet here, two different rings
+          // touch at this node (very common where hundreds of small ponds share vertices) and
+          // merging them would build one bogus giant ring - so the chain is left open instead.
+          let next = -1, reverse = false, matches = 0;
+          for (let j = 0; j < members.length; j++) {
+            if (used[j]) continue;
+            const m = members[j];
+            const startsHere = key(m[0]) === key(end);
+            const endsHere = key(m[m.length - 1]) === key(end);
+            if (!startsHere && !endsHere) continue;
+            matches++;
+            if (matches > 1) break;
+            next = j;
+            reverse = !startsHere;
+          }
+          if (matches !== 1) break;
+          used[next] = true;
+          const add = reverse ? members[next].slice().reverse() : members[next];
+          for (let k = 1; k < add.length; k++) ring.push(add[k]);
+        }
+        if (closed) rings.push(ring); else open++;
+      }
+      return { rings, open };
+    }
+
+    /**
+     * Picks the "certainly land" reference elevation for the DEM cross-check.
+     * Uses half of the selection's own relief (never less than 50 m above its lowest point) and
+     * refuses to judge selections without meaningful relief - a lake-only selection has almost no
+     * relief, and judging it by an absolute threshold would reject a perfectly correct mask.
+     * @returns {{relief: number, landRef: number, judge: boolean}}
+     */
+    function cmLandReference(demMin, demMax) {
+      const relief = (isFinite(demMin) && isFinite(demMax)) ? demMax - demMin : 0;
+      if (relief < CM_MASK_MIN_RELIEF_M) return { relief, landRef: Infinity, judge: false };
+      return {
+        relief,
+        landRef: demMin + Math.max(CM_MASK_LAND_REF_MIN_M, CM_MASK_LAND_REF_FRACTION * relief),
+        judge: true
+      };
+    }
+
+    /**
+     * Cross-checks a water mask against the DEM. A mask cell is "certainly land" when the highest
+     * DEM pixel inside it is above `landRef` metres. Real water can still cover such cells (mountain
+     * lakes, reservoirs), but a large share of them means the mask itself is broken - which is the
+     * only way a whole map silently becomes water.
+     * @returns {{sample: number, drowned: number, ratio: number}}
+     */
+    function cmMaskAgreement(dem, mapW, mapH, maskW, maskH, water, landRef) {
+      const sx = mapW / maskW, sy = mapH / maskH;
+      let sample = 0, drowned = 0;
+      for (let my = 0; my < maskH; my++) {
+        const y0 = Math.floor(my * sy);
+        const y1 = Math.min(mapH, Math.max(y0 + 1, Math.floor((my + 1) * sy)));
+        for (let mx = 0; mx < maskW; mx++) {
+          const x0 = Math.floor(mx * sx);
+          const x1 = Math.min(mapW, Math.max(x0 + 1, Math.floor((mx + 1) * sx)));
+          let blockMax = -Infinity;
+          for (let y = y0; y < y1; y++) {
+            const row = y * mapW;
+            for (let x = x0; x < x1; x++) {
+              const v = dem[row + x];
+              if (v > blockMax) blockMax = v;
+            }
+          }
+          if (blockMax > landRef) {
+            sample++;
+            if (water[my * maskW + mx]) drowned++;
+          }
+        }
+      }
+      return { sample, drowned, ratio: sample > 0 ? drowned / sample : 0 };
+    }
     // === COASTMASK-CORE-END ===
 
     // --- 6b. OSM coastline / water / river land mask ---
     const CM_COAST_LINE_PX = 3;                                        // barrier width in map pixels
     const CM_RIVER_WIDTH_M = { river: 30, canal: 20, stream: 8 };      // fallback widths when OSM has no width tag
+    const CM_STREAM_MIN_PX = 0.5;                                      // streams thinner than this are not drawn at all
     // A single Overpass call can hang for minutes on a loaded mirror (measured: 70-200 s), so
     // every attempt is aborted after this long and the next mirror is tried.
     const CM_OVERPASS_TIMEOUT_MS = 30000;
@@ -1520,7 +1636,7 @@
       const ictx = inlandCanvas.getContext('2d');
       [bctx, ictx].forEach(c => { c.lineJoin = 'round'; c.lineCap = 'round'; });
 
-      const stats = { coast: 0, waterArea: 0, river: 0 };
+      const stats = { coast: 0, waterArea: 0, river: 0, riverSkipped: 0, unclosed: 0, unassembled: 0 };
       const tracePath = (ctx, geometry, close) => {
         ctx.beginPath();
         for (let i = 0; i < geometry.length; i++) {
@@ -1540,30 +1656,57 @@
             tracePath(bctx, el.geometry, false);
             bctx.stroke();
           } else if (t.natural === 'water' || t.waterway === 'riverbank' || t.landuse === 'reservoir' || t.water === 'river' || t.water === 'lake') {
-            stats.waterArea++;
-            ictx.fillStyle = '#fff';
-            tracePath(ictx, el.geometry, true);
-            ictx.fill();
+            if (cmIsClosedRing(el.geometry)) {
+              stats.waterArea++;
+              ictx.fillStyle = '#fff';
+              tracePath(ictx, el.geometry, true);
+              ictx.fill();
+            } else {
+              // An unclosed way tagged as an area is normally one arc of a multipolygon ring.
+              // Filling it would paint the area between the arc and its chord as water, so it is
+              // stroked thinly instead: never invent a lake out of a broken ring.
+              stats.unclosed++;
+              ictx.strokeStyle = '#fff';
+              ictx.lineWidth = Math.max(2, 12 / mPerPx);
+              tracePath(ictx, el.geometry, false);
+              ictx.stroke();
+            }
           } else if (t.waterway === 'river' || t.waterway === 'canal' || t.waterway === 'stream') {
-            stats.river++;
             const widthM = parseFloat(t.width) || CM_RIVER_WIDTH_M[t.waterway] || 10;
+            const widthPx = widthM / mPerPx;
+            // A stream far thinner than one tile cannot be represented at all. Drawing thousands of
+            // them as minimum-width lines is how a whole mountainous region ended up as water: at
+            // 255 m per pixel a 2 px "stream" is half a kilometre wide.
+            if (t.waterway === 'stream' && widthPx < CM_STREAM_MIN_PX) { stats.riverSkipped++; continue; }
+            stats.river++;
             ictx.strokeStyle = '#fff';
-            ictx.lineWidth = Math.min(64, Math.max(2, widthM / mPerPx));
+            ictx.lineWidth = Math.min(64, Math.max(1, widthPx));
             tracePath(ictx, el.geometry, false);
             ictx.stroke();
           }
         } else if (el.type === 'relation' && Array.isArray(el.members)) {
-          // Multipolygon water body: fill outer rings, then punch out inner rings (islands).
-          const outers = el.members.filter(m => m.role !== 'inner' && Array.isArray(m.geometry) && m.geometry.length > 1);
-          const inners = el.members.filter(m => m.role === 'inner' && Array.isArray(m.geometry) && m.geometry.length > 1);
-          if (outers.length === 0) continue;
+          // Multipolygon water body. OSM splits the rings of large water bodies into many open
+          // arcs (Lake Biwa: 78 members, only 22 of them closed), so the arcs must be chained
+          // back into rings before filling - filling each arc on its own paints its chord area
+          // and turns the whole selection into water.
+          const outerArcs = el.members.filter(m => m.role !== 'inner' && Array.isArray(m.geometry) && m.geometry.length > 1).map(m => m.geometry);
+          const innerArcs = el.members.filter(m => m.role === 'inner' && Array.isArray(m.geometry) && m.geometry.length > 1).map(m => m.geometry);
+          if (outerArcs.length === 0) continue;
+          const outerRings = cmAssembleRings(outerArcs);
+          stats.unclosed += outerRings.open;
+          if (outerRings.rings.length === 0) {
+            // Broken topology: skipping it is much safer than filling the arcs individually.
+            stats.unassembled++;
+            continue;
+          }
           stats.waterArea++;
           ictx.fillStyle = '#fff';
-          for (const m of outers) { tracePath(ictx, m.geometry, true); ictx.fill(); }
-          if (inners.length > 0) {
+          for (const ring of outerRings.rings) { tracePath(ictx, ring, true); ictx.fill(); }
+          const innerRings = cmAssembleRings(innerArcs);
+          if (innerRings.rings.length > 0) {
             ictx.save();
             ictx.globalCompositeOperation = 'destination-out';
-            for (const m of inners) { tracePath(ictx, m.geometry, true); ictx.fill(); }
+            for (const ring of innerRings.rings) { tracePath(ictx, ring, true); ictx.fill(); }
             ictx.restore();
           }
         }
@@ -1588,8 +1731,11 @@
       // Query tiering: river/stream centre lines are by far the bulk of the payload, so they
       // are only requested for selections small enough for Overpass to answer in time.
       const span = Math.max(Math.abs(parseFloat(mb.e) - parseFloat(mb.w)), Math.abs(parseFloat(mb.n) - parseFloat(mb.s)));
-      const wantRivers = span <= 2.0;
-      const wantStreams = span <= 0.6;
+      // Centre-line rivers are the bulk of the payload and, on a coarse map, thinner than one tile
+      // anyway: a 0.94 deg box around Lake Biwa returned 13368 elements (30 MB) with them and
+      // thousands of 1 px lines flood the terrain. So they are only requested for small selections.
+      const wantRivers = span <= 0.75;
+      const wantStreams = span <= 0.35;
       const parts = [
         `  way["natural"="coastline"](${mb.s},${mb.w},${mb.n},${mb.e});`,
         `  way["natural"="water"](${mb.s},${mb.w},${mb.n},${mb.e});`,
@@ -1621,7 +1767,11 @@
       const toPx = (lon, lat) => transform(getMercatorX(lon), getMercatorY(lat));
 
       const { barrier, inland, stats } = cmRasterizeVectors(elements, toPx, maskW, maskH, cmMetersPerMaskPixel(maskW), scale);
-      console.log(`Coast mask: ${elements.length} elements -> ${stats.coast} coastline ways, ${stats.waterArea} water areas, ${stats.river} rivers (bbox span ${span.toFixed(2)} deg, mask ${maskW}x${maskH})`);
+      console.log(`Coast mask: ${elements.length} elements -> ${stats.coast} coastline ways, ${stats.waterArea} water areas, ${stats.river} rivers drawn` +
+                  (stats.riverSkipped ? `, ${stats.riverSkipped} streams too thin to draw` : '') +
+                  (stats.unclosed ? `, ${stats.unclosed} unclosed arcs stroked` : '') +
+                  (stats.unassembled ? `, ${stats.unassembled} relations skipped (topology)` : '') +
+                  ` (bbox span ${span.toFixed(2)} deg, mask ${maskW}x${maskH})`);
 
       // The mirror answered but nothing usable came back (e.g. `out geom` was ignored).
       // Refuse to continue: otherwise every pixel would silently be turned into land.
@@ -1657,6 +1807,17 @@
         if (v > demMax) demMax = v;
       }
 
+      // Safety net: never hand back a mask that drowns most of the clearly-land area. This is the
+      // check that would have caught the multipolygon bug that turned a whole map into water.
+      const landRefInfo = cmLandReference(demMin, demMax);
+      const agreement = cmMaskAgreement(dem, mapW, mapH, maskW, maskH, water, landRefInfo.landRef);
+      const maskBroken = landRefInfo.judge && agreement.sample >= 200 && agreement.ratio > CM_MASK_DROWN_LIMIT;
+      console.log(`Coast mask agreement: relief ${landRefInfo.relief.toFixed(1)} m, land reference ` +
+                  `${landRefInfo.judge ? landRefInfo.landRef.toFixed(1) + ' m' : '(not judged)'}, ` +
+                  `${agreement.drowned}/${agreement.sample} such cells marked as water` +
+                  ` (${(agreement.ratio * 100).toFixed(1)}%)${maskBroken ? ' -> unreliable' : ''}`);
+      if (maskBroken) console.warn('Coast mask marks too much high ground as water; the mask will be skipped.');
+
       const usable = stats.coast + stats.waterArea + stats.river;
       // No usable features at all: the query came back empty. This is far more likely to be a
       // data/query problem than a selection that genuinely has no water anywhere, so report it
@@ -1665,7 +1826,8 @@
       const noSeed = !noFeatures && stats.coast > 0 && seedDepthUsed === null;
       return {
         water, maskW, maskH, stats, oceanPx, seedDepthUsed, hasCoast: stats.coast > 0,
-        noFeatures, noSeed, demMin: isFinite(demMin) ? demMin : null, demMax: isFinite(demMax) ? demMax : null
+        noFeatures, noSeed, maskBroken, agreement,
+        demMin: isFinite(demMin) ? demMin : null, demMax: isFinite(demMax) ? demMax : null
       };
     }
 
@@ -1785,6 +1947,12 @@
               console.warn('Coast mask: no coastline/water features returned; mask skipped.');
               coastMask = null;
               maskStatusEl.textContent = t.maskNoFeatures;
+            } else if (coastMask.maskBroken) {
+              // The mask contradicts the DEM (it drowns clearly-land area): refuse to apply it.
+              const pct = Math.round(coastMask.agreement.ratio * 100);
+              console.warn('Coast mask: unreliable (drowns clearly-land area); mask skipped.');
+              coastMask = null;
+              maskStatusEl.textContent = t.maskUnreliable.replace('{p}', pct);
             } else if (coastMask.noSeed) {
               maskStatusEl.textContent = t.maskAllLand.replace('{x}', coastMask.demMin === null ? '?' : coastMask.demMin.toFixed(1));
             } else {
