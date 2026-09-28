@@ -1,0 +1,127 @@
+# 海岸线/河流陆地掩膜(OSM Coast Mask)
+
+改造对象:`OpenTTD-Heightmap-Generator_8192_fix_12_coastmask.html`(基于仓库里最新的 `..._fix_11.html`,原文件未改动)。
+
+解决的问题:高程数据(Terrarium DEM)在海岸带精度不足,加上 `maxElev=2000` 时 1 个灰阶 ≈ 7.8 m 的量化损失,**海拔几米以下的低洼平原会被整片判成海**。本改造用 OSM 的海岸线/水体/河流数据做一张水陆掩膜,把该是陆地的地方强制抬到灰阶 ≥1。
+
+---
+
+## 1. 为什么"灰阶 1"就够了
+
+OpenTTD 加载高度图时的规则(`src/heightmap.cpp:403`):
+
+```cpp
+if (heightmap_height > 0) {
+    /* 0 is sea level. Other grey scales are scaled evenly to the available height levels > 0. */
+    heightmap_height = 1 + (heightmap_height - 1) * heightmap_height_setting / 255;
+}
+```
+
+- **灰阶 0 = 海平面 = 水**;
+- **灰阶 ≥1 = 陆地**,灰阶 1 → 高度等级 1(与游戏里"地图高度"设置无关);
+- `FixSlopes()` 只会削掉"比邻居高 2 级以上"的坎,所以 1 像素宽的陆地/河道不会被抹平。
+
+所以掩膜只需要做一件事:**判定为陆地 → 灰度至少 1;判定为水 → 灰度 0**。不需要更大的值,也不需要额外的陡坡补偿。
+
+## 2. 新增 UI(面板第 2 区,"生成平滑地形图"上方)
+
+| 控件 | 默认 | 说明 |
+|---|---|---|
+| `OSM 海岸线/河流陆地掩膜` | 开 | 总开关。开启时自动跳过"内陆湖泊识别与填平"(它会把封闭洼地一律填成水面,和掩膜冲突) |
+| `最小陆地灰阶` | 1 | 判定为陆地的像素的最低灰度。1 就是最矮的陆地 |
+| `深水种子水深` | -10 m | 只有低于这个高度的像素才会被当作"确定是海",作为洪水填充的起点 |
+| `掩膜判定为水面的像素强制为 0` | 开 | 关掉它则只做"救陆地",不压平 DEM 噪声造出的海中小岛 |
+
+生成按钮上方会显示一行状态,例如
+`掩膜:海岸线 1 段 / 水体 0 个 / 河流 0 条,深水种子 -10 m`,
+失败时显示"海岸线/河流数据获取失败,本次生成已跳过陆地掩膜。"(不会中断生成)。
+
+## 3. 算法
+
+```
+1. DEM 采样得到 heightGrid(米)—— 必须在平滑/填湖之前,因为那两步会把深海信息抹掉
+2. bbox 外扩 15% 后向 Overpass 请求:
+     way[natural=coastline]                        → 海岸线(只当"墙")
+     way[natural=water] / relation[natural=water]  → 湖泊、水库等水面多边形
+     way[waterway=riverbank] / landuse=reservoir
+     way[waterway=river|canal(|stream)]            → 河心线(按 width 或默认值估宽)
+   out geom;
+3. 在掩膜画布上光栅化:海岸线画 3px 宽的墙;水面多边形填充(relation 先填 outer,再用
+   destination-out 挖掉 inner 岛);河流按估算宽度描线
+4. 种子 = DEM 的"块最大值"仍低于阈值(默认 -10 m)的格点
+     → 块最大值保证 DEM 噪声不会在陆地上伪造种子;若一个种子都没有,依次放宽到
+       -5 / -2 / -0.5 m(浅海兜底);仍然没有就按"全陆地"处理
+5. ocean = 从种子做 4 邻接洪水填充,不许穿过海岸线墙
+   water = ocean ∪ 内陆水体 ; land = ¬water
+6. 输出灰度(在原有的归一化之后):
+     掩膜判水 → 0(默认;可关)
+     掩膜判陆 → max(原灰度, 最小陆地灰阶)
+```
+
+设计要点:
+
+- **海岸线只当墙用**,不需要把 way 缝合成闭环,也不需要判断左右侧;选区完全在内陆时没有种子,自动全是陆地,不会误判。
+- **种子必须保守**(深水),否则陆地上的假种子会把整片平原灌成海;这也是用块最大值而不是块均值的原因。
+- **墙本身算陆地**,相当于海岸线向海侧留了 1–2 px 余量,避免第一排海岸陆地被吃掉。
+- 掩膜应用时用双线性采样 + 0.5 阈值,海岸线不会出现 2 px 方块状台阶。
+- 掩膜分辨率上限 4096(长边),8192 的图会以 1/2 分辨率建掩膜后再采样回来,避免再吃掉 ~270 MB 内存。
+
+## 4. 建议参数
+
+沿海平原/三角洲(荷兰、江苏沿海、恒河三角洲、大阪湾这类)推荐:
+
+- `OSM 海岸线/河流陆地掩膜`:开,`最小陆地灰阶` 保持 1;
+- `海平面裁切` 可以设成负数(-2 ~ -5),让圩田的负海拔也留在陆地一侧;
+- `最高海拔` 降到 100–300 m(沿海图没必要 2000 m,否则 1 灰阶 = 7.8 m,内陆低地的起伏会被压平);
+- `内陆湖泊识别与填平`:开掩膜时会自动跳过,不用手动关。
+
+想先把 DEM 噪声造出的海中小岛也清掉,就把"强制为 0"保持勾选。
+
+## 5. 本次验证做到了什么程度
+
+全部在 `_analysis/` 里可复跑:
+
+| 测试 | 命令 | 结果 |
+|---|---|---|
+| 纯逻辑单测(坐标变换、洪水填充、种子、采样) | `node _analysis/mask_core_test.mjs OpenTTD-Heightmap-Generator_8192_fix_12_coastmask.html` | 21/21 通过 |
+| 无头浏览器画布/集成测试(Edge + CDP,无额外依赖) | `node _analysis/browser_mask_test.mjs ../OpenTTD-Heightmap-Generator_8192_fix_12_coastmask.html` | 23/23 通过 |
+| 端到端(真实 AWS DEM + 伪造 Overpass 响应) | `node _analysis/browser_e2e_test.mjs ../OpenTTD-Heightmap-Generator_8192_fix_12_coastmask.html` | 全通过 |
+
+端到端那一轮的实际数字(选区:34.6°N 135.15°E,大阪湾,512×512):
+
+- **掩膜开**:水陆边界精确落在伪造海岸线所在的中线(x=258,画布中线 256,偏差来自墙宽/2 + 双线性阈值),两半各自完全均一(西半 128512 px 全陆地、东半 128512 px 全水),`minNonZero = 1` 说明最低陆地正好是灰阶 1。
+- **掩膜关(模拟 Overpass 504)**:同一选区里 262144 px 中有 **240427 px(92%)被判成水**——这就是"低洼整片变海"的实测复现;掩膜打开后同样的地形变成了干净的一半陆地。
+- 第二种情况下生成照常完成、状态栏如实报错、不会卡住。
+
+Overpass 响应结构也对着真实接口核对过:`out geom` 的 way 带 `geometry:[{lat,lon}]`;relation 的成员带 `role`(outer/inner)与各自的 `geometry`(例如 Zürichsee:86 个成员,同时含 outer 与 inner)。
+
+## 6. 已知限制 / 未验证项
+
+1. **Overpass 镜像不稳**。这次实测:主站 `overpass-api.de` 多次返回 `Dispatcher_Client::request_read_and_idx::timeout`(服务繁忙);`overpass.kumi.ai` DNS 解析失败;`overpass.private.coffee` 180 s 无响应;`maps.mail.ru` 与 `overpass.osm.ch` 可用但也会间歇报错。工具里沿用原有多镜像顺序(失败会依次尝试),但**没有实测过整个日本级别的选区**。
+2. **大选区查询量**:河流/溪流心线是数据量的大头。已做分级——bbox 跨度 >2° 不取河流,>0.6° 不取溪流。即便如此,大范围仍可能超时(超时会走"跳过掩膜"的降级路径)。
+3. **河宽是估算**:优先用 OSM 的 `width`,否则 river 30 m / canal 20 m / stream 8 m,再按"米/掩膜像素"换算,限制在 2–64 px。窄于一个地图格的小溪会被标成 1 格宽的水。
+4. **掩膜与 DEM 的最差情况**:掩膜本身错(OSM 数据错误、或选区内海岸线恰好缺失)时,结果是错的,而且不会报警。可选改进是拿 DEM < -20 m 的像素做交叉校验并在不一致时告警——目前没做。
+5. **WorldCover 栅格路线未实现**:ESA WorldCover 10 m 水体类作为独立数据源(对细河更省事、但 30 m 以下会漏)只做了方案评估,没有代码。
+6. **未在真实 Overpass 上跑完整流程**:端点与结构验证是真的,但"真实选区 + 真实掩膜 + 出图"的组合没跑成(就是上面第 1 条的原因)。你网络条件好的时候跑一次大阪湾/九州就能确认。
+
+## 7. 代码改动位置(便于回滚或合并)
+
+- i18n:en/zh/ja 各加 9 个键(`data-i18n` 完整性由浏览器测试自动校验,当前 36 个键三语齐全)。
+- HTML:第 2 区新增掩膜控件块 + `#mask-status` 状态行。
+- JS 新增:`COASTMASK-CORE`(纯函数,可单测)+ `overpassQuery` / `cmMetersPerMaskPixel` / `cmRasterizeVectors` / `buildCoastMask`。
+- JS 修改:生成流程里在 DEM 采样后建掩膜;`processLakeDetection` 改为仅在无掩膜时执行;原灰度输出循环改为按掩膜钳制,并顺手修掉 `maxElev <= waterLevel` 时的除零;城镇导出改为复用 `overpassQuery`。
+
+## 8. 底图切换(为修 403 加的另一处改动)
+
+现象:用 `file://` 直接打开页面时,底图整片显示 403 "Access blocked — App is not following the tile usage policy of OpenStreetMap's volunteer-run servers"。原因是本地文件页面发出的瓦片请求不带 Referer,不符合 OSM 志愿者服务器的使用政策;**它只影响用来画选区的那张底图,不影响高度图数据(AWS)和城镇/海岸线数据(Overpass)**。
+
+改动:
+
+- 右上角新增底图下拉:**CARTO(默认)** / OSM 标准 / Esri 卫星影像;
+- 每个底图都带上各自的署名(CARTO、OSM、Esri 的使用条款都要求显示),署名控件移到左下角(右下角被 GitHub 按钮占着);
+- 昼夜按钮的语义保持不变:CARTO 会切换浅色 `light_all` ↔ 深色 `dark_all`;OSM / Esri 没有深色变体,切换时保持原瓦片。
+
+放到 GitHub Pages 之类的站点上访问时,请求会带上正常 Referer,OSM 那一档通常也能恢复可用;把 CARTO 设为默认只是为了让本地双击打开也能正常用。
+
+验证:`_analysis/browser_mask_test.mjs` 里新增 8 项断言(默认底图是 CARTO、三档都能切换、署名文本与位置、昼夜切换翻转 CARTO 浅/深),当前 30/30 通过。
+
