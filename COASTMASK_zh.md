@@ -50,7 +50,9 @@ if (heightmap_height > 0) {
    destination-out 挖掉 inner 岛);河流按估算宽度描线
 4. 种子 = DEM 的"块最大值"仍低于阈值(默认 -10 m)的格点
      → 块最大值保证 DEM 噪声不会在陆地上伪造种子;若一个种子都没有,依次放宽到
-       -5 / -2 / -0.5 m(浅海兜底);仍然没有就按"全陆地"处理
+       -5 / -2 / -0.5 m(浅海兜底);仍然没有则在提示里给出选区最低高程,并按"全陆地"处理
+     → 若连一个可用要素都没有(海岸线/水体/河流全为空),视为**掩膜不可用**:
+       整个跳过掩膜、回退到高程判定 + 湖泊检测,而不是把全图判成陆地
 5. ocean = 从种子做 4 邻接洪水填充,不许穿过海岸线墙
    water = ocean ∪ 内陆水体 ; land = ¬water
 6. 输出灰度(在原有的归一化之后):
@@ -60,7 +62,7 @@ if (heightmap_height > 0) {
 
 设计要点:
 
-- **海岸线只当墙用**,不需要把 way 缝合成闭环,也不需要判断左右侧;选区完全在内陆时没有种子,自动全是陆地,不会误判。
+- **海岸线只当墙用**,不需要把 way 缝合成闭环,也不需要判断左右侧;查询失败或选区里一个要素都没有时,掩膜直接不生效(见第 9 节),不会误判。
 - **种子必须保守**(深水),否则陆地上的假种子会把整片平原灌成海;这也是用块最大值而不是块均值的原因。
 - **墙本身算陆地**,相当于海岸线向海侧留了 1–2 px 余量,避免第一排海岸陆地被吃掉。
 - 掩膜应用时用双线性采样 + 0.5 阈值,海岸线不会出现 2 px 方块状台阶。
@@ -79,13 +81,14 @@ if (heightmap_height > 0) {
 
 ## 5. 本次验证做到了什么程度
 
-全部在 `_analysis/` 里可复跑:
+全部可复跑。测试脚本在本地 `D:\CNS\ottd\OpenTTD-Heightmap-Generator\_analysis\`(不随本站发布),`index.html` 指本目录下的页面:
 
 | 测试 | 命令 | 结果 |
 |---|---|---|
-| 纯逻辑单测(坐标变换、洪水填充、种子、采样) | `node _analysis/mask_core_test.mjs OpenTTD-Heightmap-Generator_8192_fix_12_coastmask.html` | 21/21 通过 |
-| 无头浏览器画布/集成测试(Edge + CDP,无额外依赖) | `node _analysis/browser_mask_test.mjs ../OpenTTD-Heightmap-Generator_8192_fix_12_coastmask.html` | 23/23 通过 |
-| 端到端(真实 AWS DEM + 伪造 Overpass 响应) | `node _analysis/browser_e2e_test.mjs ../OpenTTD-Heightmap-Generator_8192_fix_12_coastmask.html` | 全通过 |
+| 纯逻辑单测(坐标变换、洪水填充、种子、采样) | `node mask_core_test.mjs ..\..\ottd-hg-fork\index.html` | 21/21 通过 |
+| 无头浏览器画布/集成测试(Edge + CDP,无额外依赖) | `node browser_mask_test.mjs ..\..\ottd-hg-fork\index.html` | 30/30 通过 |
+| 端到端(真实 AWS DEM + 伪造 Overpass 响应,4 个阶段) | `node browser_e2e_test.mjs ..\..\ottd-hg-fork\index.html` | 全通过 |
+| 对线上部署跑同样两套 | 追加 `--url https://babel-ttt.github.io/OpenTTD-Heightmap-Generator/` | 同样全通过 |
 
 端到端那一轮的实际数字(选区:34.6°N 135.15°E,大阪湾,512×512):
 
@@ -100,7 +103,7 @@ Overpass 响应结构也对着真实接口核对过:`out geom` 的 way 带 `geom
 1. **Overpass 镜像不稳**。这次实测:主站 `overpass-api.de` 多次返回 `Dispatcher_Client::request_read_and_idx::timeout`(服务繁忙);`overpass.kumi.ai` DNS 解析失败;`overpass.private.coffee` 180 s 无响应;`maps.mail.ru` 与 `overpass.osm.ch` 可用但也会间歇报错。工具里沿用原有多镜像顺序(失败会依次尝试),但**没有实测过整个日本级别的选区**。
 2. **大选区查询量**:河流/溪流心线是数据量的大头。已做分级——bbox 跨度 >2° 不取河流,>0.6° 不取溪流。即便如此,大范围仍可能超时(超时会走"跳过掩膜"的降级路径)。
 3. **河宽是估算**:优先用 OSM 的 `width`,否则 river 30 m / canal 20 m / stream 8 m,再按"米/掩膜像素"换算,限制在 2–64 px。窄于一个地图格的小溪会被标成 1 格宽的水。
-4. **掩膜与 DEM 的最差情况**:掩膜本身错(OSM 数据错误、或选区内海岸线恰好缺失)时,结果是错的,而且不会报警。可选改进是拿 DEM < -20 m 的像素做交叉校验并在不一致时告警——目前没做。
+4. **掩膜与 DEM 的最差情况**:掩膜本身错(OSM 数据错误、或选区内海岸线恰好缺失)时,结果是错的。现在有两处提示可以帮忙发现:找不到深水起点时会在状态栏报出选区最低高程;地形瓦片缺失时也会计数提示(缺失瓦片被补成海平面 0 m,本身就会毁掉水陆判定)。仍未做的是拿 DEM < -20 m 的像素与掩膜做交叉校验。
 5. **WorldCover 栅格路线未实现**:ESA WorldCover 10 m 水体类作为独立数据源(对细河更省事、但 30 m 以下会漏)只做了方案评估,没有代码。
 6. **未在真实 Overpass 上跑完整流程**:端点与结构验证是真的,但"真实选区 + 真实掩膜 + 出图"的组合没跑成(就是上面第 1 条的原因)。你网络条件好的时候跑一次大阪湾/九州就能确认。
 
