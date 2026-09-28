@@ -2144,18 +2144,20 @@
       const lngRange = Math.abs(east - west);
       const latRange = Math.abs(north - south);
 
-      // Leaflet hands back unwrapped longitudes (e.g. -246 instead of 114) once the map has been
-      // panned across the antimeridian. The DEM path survives that because its tile x is wrapped
-      // when the tile is fetched, but a mask query built from the raw value gets clamped to -180
-      // and ends up on the other side of the planet. So normalise the span here: keep its width,
-      // move its centre into [-180, 180).
-      if (lngRange > 0 && (west < -180 || east > 180)) {
-        let centreLng = (east + west) / 2;
+      // Leaflet may report unwrapped longitudes (e.g. -246 instead of 114) once the map has been
+      // panned across the antimeridian. `west`/`east` are left EXACTLY as they are because the DEM
+      // path uses them too (and it copes, since its tile x is wrapped when fetched). The mask query
+      // only gets its own normalised copy - otherwise it was clamped to -180 and landed on the
+      // wrong side of the planet.
+      let maskWest = west, maskEast = east;
+      if (lngRange > 0 && (maskWest < -180 || maskEast > 180)) {
+        let centreLng = (maskEast + maskWest) / 2;
         while (centreLng >= 180) centreLng -= 360;
         while (centreLng < -180) centreLng += 360;
-        west = centreLng - lngRange / 2;
-        east = centreLng + lngRange / 2;
-        console.log(`Normalised selection longitudes into [-180,180): west=${west.toFixed(4)} east=${east.toFixed(4)}`);
+        maskWest = centreLng - lngRange / 2;
+        maskEast = centreLng + lngRange / 2;
+        console.log(`Mask bbox longitudes normalised to west=${maskWest.toFixed(4)} east=${maskEast.toFixed(4)} ` +
+                    `(selection was west=${west.toFixed(4)} east=${east.toFixed(4)}; the DEM is untouched)`);
       }
 
       const idealZoomX = Math.log2((360 / lngRange) * (mapW / 256));
@@ -2218,13 +2220,13 @@
           const genText = btnGen.innerText;
           btnGen.innerText = i18n[currentLang].maskFetching;
           try {
-            const padX = Math.max((east - west) * 0.15, 0.01);
+            const padX = Math.max((maskEast - maskWest) * 0.15, 0.01);
             const padY = Math.max((north - south) * 0.15, 0.01);
             const mb = {
               s: Math.max(-89.9, south - padY).toFixed(6),
               n: Math.min(89.9, north + padY).toFixed(6),
-              w: Math.max(-180, west - padX).toFixed(6),
-              e: Math.min(180, east + padX).toFixed(6)
+              w: Math.max(-180, maskWest - padX).toFixed(6),
+              e: Math.min(180, maskEast + padX).toFixed(6)
             };
             coastMask = (maskSource === 'osm')
               ? await buildCoastMask(mapW, mapH, heightGrid, mb, seedDepth)
