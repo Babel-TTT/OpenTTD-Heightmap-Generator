@@ -1060,12 +1060,7 @@
     function getMercatorX(lon) { return (lon + 180) / 360; }
     function latLngToMerc(latlng) { return { x: getMercatorX(latlng.lng), y: getMercatorY(latlng.lat) }; }
     function mercToLatLng(m) {
-      let lng = m.x * 360 - 180;
-      // Leaflet hands back longitudes outside [-180,180] once the map has been panned across the
-      // antimeridian. Without normalising here, the mask query used to be sent ~290 deg away from
-      // the selection while the DEM (which works in raw mercator) stayed correct.
-      while (lng > 180) lng -= 360;
-      while (lng < -180) lng += 360;
+      const lng = m.x * 360 - 180;   // NOTE: no wrapping here - see the long/lat handling in the mask bbox
       const n = Math.PI - 2 * Math.PI * m.y;
       const lat = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
       return L.latLng(lat, lng);
@@ -2024,9 +2019,9 @@
       const y0 = Math.floor(getMercatorY(bbox.n) * n), y1 = Math.floor(getMercatorY(bbox.s) * n);
       console.log(`Tile mask query bbox: s=${mb.s} w=${mb.w} n=${mb.n} e=${mb.e}  ->  x ${x0}..${x1} y ${y0}..${y1} @z${z}`);
       if (!(isFinite(x0) && isFinite(x1) && x0 >= 0 && x1 < n && y0 >= 0 && y1 < n && x0 <= x1 && y0 <= y1)) {
-        // A range like this means the selection coordinates are wrong; failing loudly beats
-        // quietly producing a 0% mask from tiles on the other side of the planet.
-        throw new Error(`tile range out of bounds (x ${x0}..${x1}, y ${y0}..${y1} @z${z}); selection coordinates look wrong`);
+        // Report it, but never make the tool unusable: the caller falls back to no mask.
+        console.warn(`Tile range looks wrong (x ${x0}..${x1}, y ${y0}..${y1} @z${z}); skipping the tile mask.`);
+        throw new Error(`tile range out of bounds (x ${x0}..${x1}, y ${y0}..${y1} @z${z})`);
       }
 
       const jobs = [];
