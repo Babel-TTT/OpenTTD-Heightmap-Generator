@@ -677,7 +677,7 @@
               <span data-i18n="lblMinWaterPx">Fill water bodies smaller than (px)</span>
               <span id="val-min-water" class="val-badge">8</span>
             </div>
-            <input type="range" id="min-water-px" min="0" max="64" value="8" step="1">
+            <input type="range" id="min-water-px" min="0" max="4096" value="8" step="4">
 
             <label class="checkbox-label" style="margin-top:8px;">
               <input type="checkbox" id="mask-force-apply">
@@ -2199,7 +2199,7 @@
       const seedDepth = parseFloat(document.getElementById('seed-depth').value);
       const maskForceWater = document.getElementById('mask-force-water').checked;
       const maskForceApply = document.getElementById('mask-force-apply').checked;   // use the mask even if it conflicts with the DEM
-      const minWaterPx = Math.max(0, Math.min(256, parseInt(document.getElementById('min-water-px').value, 10) || 0));
+      const minWaterPx = Math.max(0, Math.min(4096, parseInt(document.getElementById('min-water-px').value, 10) || 0));
       const maskSource = document.getElementById('mask-source').value;   // 'tiles' | 'osm'
       const seedDepthInput = document.getElementById('seed-depth');
       seedDepthInput.disabled = (maskSource !== 'osm');                 // only the Overpass path uses seeds
