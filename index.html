@@ -2144,6 +2144,20 @@
       const lngRange = Math.abs(east - west);
       const latRange = Math.abs(north - south);
 
+      // Leaflet hands back unwrapped longitudes (e.g. -246 instead of 114) once the map has been
+      // panned across the antimeridian. The DEM path survives that because its tile x is wrapped
+      // when the tile is fetched, but a mask query built from the raw value gets clamped to -180
+      // and ends up on the other side of the planet. So normalise the span here: keep its width,
+      // move its centre into [-180, 180).
+      if (lngRange > 0 && (west < -180 || east > 180)) {
+        let centreLng = (east + west) / 2;
+        while (centreLng >= 180) centreLng -= 360;
+        while (centreLng < -180) centreLng += 360;
+        west = centreLng - lngRange / 2;
+        east = centreLng + lngRange / 2;
+        console.log(`Normalised selection longitudes into [-180,180): west=${west.toFixed(4)} east=${east.toFixed(4)}`);
+      }
+
       const idealZoomX = Math.log2((360 / lngRange) * (mapW / 256));
       const idealZoomY = Math.log2((180 / latRange) * (mapH / 256));
       let targetZoom = Math.min(Math.max(4, Math.ceil(Math.max(idealZoomX, idealZoomY))), 14);
