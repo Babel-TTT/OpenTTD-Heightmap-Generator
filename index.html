@@ -672,6 +672,11 @@
               <input type="checkbox" id="mask-force-water" checked>
               <span data-i18n="lblMaskForceWater">Force mask water pixels to gray 0</span>
             </label>
+
+            <label class="checkbox-label" style="margin-top:8px;">
+              <input type="checkbox" id="mask-force-apply">
+              <span data-i18n="lblMaskForceApply">Use the mask even if it conflicts with the elevation data</span>
+            </label>
           </div>
           <div class="tip-box" data-i18n="coastMaskTip" style="margin-top:8px;">Fetches OSM coastline, water and river data for this selection: water pixels are forced to gray 0, land pixels get at least the minimum land gray (default 1 = the lowest land level). Lake detection is skipped automatically while this is on.</div>
         </div>
@@ -783,6 +788,8 @@
         lblMinLandGray: "Minimum land gray",
         lblSeedDepth: "Deep-water seed depth",
         lblMaskForceWater: "Force mask water pixels to gray 0",
+        lblMaskForceApply: "Use the mask even if it conflicts with the elevation data",
+        maskConflictNote: " (applied anyway: {p}% of the clearly-land area conflicts with the elevation data)",
         coastMaskTip: "Fetches OSM coastline, water and river data for this selection: water pixels are forced to gray 0, land pixels get at least the minimum land gray (default 1 = the lowest land level). Use it when the elevation data turns flat coastal plains into sea. Lake detection is skipped automatically while this is on.",
         maskFetching: "Fetching coastline...",
         maskFail: "Coastline/river data could not be fetched; generating without the land mask.",
@@ -844,6 +851,8 @@
         lblMinLandGray: "最小陆地灰阶",
         lblSeedDepth: "深水种子水深",
         lblMaskForceWater: "掩膜判定为水面的像素强制为 0",
+        lblMaskForceApply: "与高程冲突时也强制使用掩膜",
+        maskConflictNote: "(已按设置强制采用:有 {p}% 的明确陆地与高程冲突)",
         coastMaskTip: "拉取选区内的 OSM 海岸线、水体与河流数据:判定为水面的像素灰度强制为 0,判定为陆地的像素至少给到最小陆地灰阶(默认 1,即最矮的陆地)。用于修正高程数据把低洼平原整片判成海的问题。启用后会自动跳过「内陆湖泊识别与填平」。",
         maskFetching: "正在获取海岸线数据...",
         maskFail: "海岸线/河流数据获取失败,本次生成已跳过陆地掩膜。",
@@ -905,6 +914,8 @@
         lblMinLandGray: "最小陸地グレー値",
         lblSeedDepth: "深水シード深度",
         lblMaskForceWater: "マスクの水域をグレー0に強制",
+        lblMaskForceApply: "標高データと矛盾してもマスクを使用する",
+        maskConflictNote: "(設定により適用:明らかな陸地の {p}% が標高と矛盾)",
         coastMaskTip: "選択範囲の OSM 海岸線・水域・河川を取得し、水域はグレー0、陸地は最小陸地グレー値(既定 1 = 最も低い陸地)以上に補正します。DEM が低地平野を海と誤判定する問題への対策です。有効時は「湖沼の検出」は自動的にスキップされます。",
         maskFetching: "海岸線データを取得中...",
         maskFail: "海岸線/河川データの取得に失敗しました。今回はマスクなしで生成します。",
@@ -957,7 +968,7 @@
         const el = document.getElementById(id);
         if (el) { el.value = value; el.dispatchEvent(new Event('input')); el.dispatchEvent(new Event('change')); }
       }
-      const checkboxes = { 'raise-below-sea': false, 'raise-low-pixels': false, 'lake-detection': true, 'coast-mask': true, 'mask-force-water': true };
+      const checkboxes = { 'raise-below-sea': false, 'raise-low-pixels': false, 'lake-detection': true, 'coast-mask': true, 'mask-force-water': true, 'mask-force-apply': false };
       for (const [id, checked] of Object.entries(checkboxes)) {
         const el = document.getElementById(id);
         if (el) { el.checked = checked; el.dispatchEvent(new Event('change')); }
@@ -1019,9 +1030,16 @@
     };
 
     // Upstream fixes the initial view on Japan (Kansai). fix_11 changed it to Los Angeles, which
-    // forces anyone working on Asia to pan the map across the antimeridian - the exact situation
-    // where Leaflet starts reporting unwrapped longitudes. Kept on Kansai here.
-    const map = L.map('map', { zoomControl: false }).setView([35.3, 136.2], 9);
+    // forces anyone working on Asia to pan the map across the antimeridian - and Leaflet then
+    // reports unwrapped longitudes (e.g. 473 instead of 113), which sent mask queries to the other
+    // side of the globe. maxBounds keeps the map inside a single world copy so every mouse
+    // coordinate stays within [-180,180] and the DEM and the mask can never disagree again.
+    const map = L.map('map', {
+      zoomControl: false,
+      worldCopyJump: true,
+      maxBounds: [[-85, -180], [85, 180]],
+      maxBoundsViscosity: 1.0
+    }).setView([35.3, 136.2], 9);
     if (map.attributionControl) map.attributionControl.setPosition('bottomleft');   // keep clear of the GitHub button
 
     let currentBasemapKey = 'carto';
@@ -1399,7 +1417,7 @@
     const CM_MASK_LAND_REF_MIN_M = 50;      // metres above the lowest point, at minimum
     const CM_MASK_LAND_REF_FRACTION = 0.5;  // ... or half of the observed relief
     const CM_MASK_MIN_RELIEF_M = 100;       // below this relief the check cannot judge anything
-    const CM_MASK_DROWN_LIMIT = 0.25;       // share of "certainly land" the mask may still call water
+    const CM_MASK_DROWN_LIMIT = 0.45;       // share of "certainly land" the mask may still call water
 
     /**
      * Builds the world (mercator) -> mask-pixel mapping for the current selection.
@@ -2127,6 +2145,7 @@
       const minLandGray = Math.max(1, Math.min(255, parseInt(document.getElementById('min-land-gray').value, 10) || 1));
       const seedDepth = parseFloat(document.getElementById('seed-depth').value);
       const maskForceWater = document.getElementById('mask-force-water').checked;
+      const maskForceApply = document.getElementById('mask-force-apply').checked;   // use the mask even if it conflicts with the DEM
       const maskSource = document.getElementById('mask-source').value;   // 'tiles' | 'osm'
       const seedDepthInput = document.getElementById('seed-depth');
       seedDepthInput.disabled = (maskSource !== 'osm');                 // only the Overpass path uses seeds
@@ -2231,10 +2250,11 @@
               console.warn('Coast mask: no water features in the selection; mask skipped.');
               coastMask = null;
               maskStatusEl.textContent = t.maskNoFeatures;
-            } else if (coastMask.maskBroken) {
-              // The mask contradicts the DEM (it drowns clearly-land area): refuse to apply it.
+            } else if (coastMask.maskBroken && !maskForceApply) {
+              // The mask contradicts the DEM (it drowns clearly-land area): refuse to apply it,
+              // unless the user explicitly asked for the mask anyway.
               const pct = Math.round(coastMask.agreement.ratio * 100);
-              console.warn('Coast mask: unreliable (drowns clearly-land area); mask skipped.');
+              console.warn('Coast mask: unreliable (drowns clearly-land area); mask skipped. Tick the override to use it anyway.');
               coastMask = null;
               maskStatusEl.textContent = t.maskUnreliable.replace('{p}', pct);
             } else if (coastMask.noSeed) {
@@ -2244,12 +2264,14 @@
                           .replace('{z}', coastMask.zoom)
                           .replace('{t}', coastMask.tileCount)
                           .replace('{a}', coastMask.stats.waterArea)
-                          .replace('{p}', Math.round(coastMask.waterShare * 100));
+                          .replace('{p}', Math.round(coastMask.waterShare * 100))
+                          + (coastMask.maskBroken ? t.maskConflictNote.replace('{p}', Math.round(coastMask.agreement.ratio * 100)) : '');
             } else {
               maskStatusEl.textContent = t.maskReady.replace('{c}', coastMask.stats.coast)
                           .replace('{a}', coastMask.stats.waterArea)
                           .replace('{r}', coastMask.stats.river)
-                          .replace('{d}', coastMask.seedDepthUsed === null ? '-' : coastMask.seedDepthUsed);
+                          .replace('{d}', coastMask.seedDepthUsed === null ? '-' : coastMask.seedDepthUsed)
+                          + (coastMask.maskBroken ? t.maskConflictNote.replace('{p}', Math.round(coastMask.agreement.ratio * 100)) : '');
             }
             maskStatusEl.style.display = 'block';
           } catch (err) {
