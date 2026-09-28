@@ -673,6 +673,12 @@
               <span data-i18n="lblMaskForceWater">Force mask water pixels to gray 0</span>
             </label>
 
+            <div class="form-label">
+              <span data-i18n="lblMinWaterPx">Fill water bodies smaller than (px)</span>
+              <span id="val-min-water" class="val-badge">8</span>
+            </div>
+            <input type="range" id="min-water-px" min="0" max="64" value="8" step="1">
+
             <label class="checkbox-label" style="margin-top:8px;">
               <input type="checkbox" id="mask-force-apply">
               <span data-i18n="lblMaskForceApply">Use the mask even if it conflicts with the elevation data</span>
@@ -789,6 +795,7 @@
         lblSeedDepth: "Deep-water seed depth",
         lblMaskForceWater: "Force mask water pixels to gray 0",
         lblMaskForceApply: "Use the mask even if it conflicts with the elevation data",
+        lblMinWaterPx: "Fill water bodies smaller than (px)",
         maskConflictNote: " (applied anyway: {p}% of the clearly-land area conflicts with the elevation data)",
         coastMaskTip: "Fetches OSM coastline, water and river data for this selection: water pixels are forced to gray 0, land pixels get at least the minimum land gray (default 1 = the lowest land level). Use it when the elevation data turns flat coastal plains into sea. Lake detection is skipped automatically while this is on.",
         maskFetching: "Fetching coastline...",
@@ -852,6 +859,7 @@
         lblSeedDepth: "深水种子水深",
         lblMaskForceWater: "掩膜判定为水面的像素强制为 0",
         lblMaskForceApply: "与高程冲突时也强制使用掩膜",
+        lblMinWaterPx: "填掉小于此面积的水面(像素)",
         maskConflictNote: "(已按设置强制采用:有 {p}% 的明确陆地与高程冲突)",
         coastMaskTip: "拉取选区内的 OSM 海岸线、水体与河流数据:判定为水面的像素灰度强制为 0,判定为陆地的像素至少给到最小陆地灰阶(默认 1,即最矮的陆地)。用于修正高程数据把低洼平原整片判成海的问题。启用后会自动跳过「内陆湖泊识别与填平」。",
         maskFetching: "正在获取海岸线数据...",
@@ -915,6 +923,7 @@
         lblSeedDepth: "深水シード深度",
         lblMaskForceWater: "マスクの水域をグレー0に強制",
         lblMaskForceApply: "標高データと矛盾してもマスクを使用する",
+        lblMinWaterPx: "この面積未満の水域を埋める (px)",
         maskConflictNote: "(設定により適用:明らかな陸地の {p}% が標高と矛盾)",
         coastMaskTip: "選択範囲の OSM 海岸線・水域・河川を取得し、水域はグレー0、陸地は最小陸地グレー値(既定 1 = 最も低い陸地)以上に補正します。DEM が低地平野を海と誤判定する問題への対策です。有効時は「湖沼の検出」は自動的にスキップされます。",
         maskFetching: "海岸線データを取得中...",
@@ -962,7 +971,7 @@
         'map-width': '512', 'map-height': '512', 'water-level': '0', 'max-elevation': '2000',
         'smooth-level': '2', 'raise-below-val': '1', 'raise-low-val': '20',
         'pop-scale': '0.05', 'town-threshold': '0.5', 'json-format': 'roadtycoon',
-        'min-land-gray': '1', 'seed-depth': '-10', 'mask-source': 'tiles'
+        'min-land-gray': '1', 'seed-depth': '-10', 'mask-source': 'tiles', 'min-water-px': '8'
       };
       for (const [id, value] of Object.entries(defaults)) {
         const el = document.getElementById(id);
@@ -1291,6 +1300,7 @@
     bindSlider('raise-low-val', 'val-raise-low', 'm'); bindSlider('pop-scale', 'val-scale');
     bindSlider('town-threshold', 'val-threshold');
     bindSlider('min-land-gray', 'val-min-land'); bindSlider('seed-depth', 'val-seed-depth', 'm');
+    bindSlider('min-water-px', 'val-min-water');
 
     // --- 6. DEM Elevation Calculation ---
     function lon2tile(lon, z) { return Math.floor((lon + 180) / 360 * Math.pow(2, z)); }
@@ -1707,6 +1717,49 @@
       const features = [];
       for (const fb of raw) { const f = cmMvtFeature(fb); if (f) features.push(f); }
       return { extent, features };
+    }
+    /**
+     * Fills water bodies smaller than `minSize` pixels (4-connected) back to land.
+     *
+     * A single pond pixel on a mountainside is forced to gray 0, and OpenTTD then drags the whole
+     * mountain down: its "no more than one height step between neighbours" rule clamps every tile
+     * standing 2+ levels above such a neighbour. Filling the small puddles keeps the sea and the
+     * real lakes while removing exactly those traps.
+     *
+     * @returns {number} how many water pixels were turned back into land
+     */
+    function cmRemoveSmallWater(water, maskW, maskH, minSize) {
+      if (!(minSize > 0)) return 0;
+      const n = maskW * maskH;
+      const seen = new Uint8Array(n);
+      const queue = new Int32Array(n);
+      let removed = 0;
+      for (let start = 0; start < n; start++) {
+        if (!water[start] || seen[start]) continue;
+        let head = 0, tail = 0, tooBig = false;
+        queue[tail++] = start;
+        seen[start] = 1;
+        const cells = [start];
+        while (head < tail) {
+          const cur = queue[head++];
+          const x = cur % maskW;
+          const push = (k) => {
+            if (seen[k] || !water[k]) return;
+            seen[k] = 1;
+            queue[tail++] = k;
+            if (!tooBig) { cells.push(k); if (cells.length >= minSize) tooBig = true; }
+          };
+          if (x > 0) push(cur - 1);
+          if (x < maskW - 1) push(cur + 1);
+          if (cur >= maskW) push(cur - maskW);
+          if (cur < n - maskW) push(cur + maskW);
+        }
+        if (!tooBig && cells.length < minSize) {
+          for (const c of cells) water[c] = 0;
+          removed += cells.length;
+        }
+      }
+      return removed;
     }
     // === COASTMASK-CORE-END ===
 
@@ -2146,6 +2199,7 @@
       const seedDepth = parseFloat(document.getElementById('seed-depth').value);
       const maskForceWater = document.getElementById('mask-force-water').checked;
       const maskForceApply = document.getElementById('mask-force-apply').checked;   // use the mask even if it conflicts with the DEM
+      const minWaterPx = Math.max(0, Math.min(256, parseInt(document.getElementById('min-water-px').value, 10) || 0));
       const maskSource = document.getElementById('mask-source').value;   // 'tiles' | 'osm'
       const seedDepthInput = document.getElementById('seed-depth');
       seedDepthInput.disabled = (maskSource !== 'osm');                 // only the Overpass path uses seeds
@@ -2281,6 +2335,13 @@
             maskStatusEl.style.display = 'block';
           }
           btnGen.innerText = genText;
+        }
+
+        // Small ponds are a menace for OpenTTD: a single gray-0 pixel inside a mountain makes the
+        // game clamp every neighbouring tile down to the next height level, flattening the ridge.
+        if (coastMask && minWaterPx > 0) {
+          const removed = cmRemoveSmallWater(coastMask.water, coastMask.maskW, coastMask.maskH, minWaterPx);
+          if (removed > 0) console.log(`Coast mask: filled ${removed} px of water in bodies smaller than ${minWaterPx} px`);
         }
 
         // Missing terrain tiles are silently filled with sea level, which can wreck the water
