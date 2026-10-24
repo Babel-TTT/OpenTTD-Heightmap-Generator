@@ -11,7 +11,7 @@ OpenTTD Heightmap Generator is a modern, high-precision web tool designed to gen
 
 * Do not select an area that is too large. It is recommended to keep both the length and width under 8192 pixels, otherwise the export speed will be significantly affected.
 
-* Do not set the Town Filter Threshold parameter too high, as it may cause town data fetching to fail.
+* The town export aims at a target count rather than a threshold, so a huge selection no longer comes back empty. It does still have to fetch every candidate node, so a very large box with the settlement floor set to `Any` will be slower.
 
 ### ✨ Key Features & Highlights
 
@@ -36,10 +36,12 @@ OpenTTD Heightmap Generator is a modern, high-precision web tool designed to gen
 
 #### 4. 🏙️ Real-World OSM Town Data Extraction
 
-* **Live Overpass API Queries**: Fetches cities, towns, villages, and suburbs with their real-world names, coordinates, and populations within the box.
-* **Multi-Mirror Endpoint Failover**: Automatically cascades across multiple Overpass API mirrors (`Overpass-API`, `Kumi`, `Mail.ru`) to ensure maximum reliability.
-* **Population Scaling & Filter Thresholds**: Adjust population scale factors and filter towns based on OSM place ranks to control map node density.
-* **Smart `city` Flag Assignment**: Automatically tags major urban areas with `city: true` based on place hierarchy.
+* **Live Overpass API Queries**: Fetches cities, towns and villages with their real-world names, coordinates, and populations within the box.
+* **Multi-Mirror Endpoint Failover**: Automatically cascades across multiple Overpass API mirrors (`Overpass-API`, `Mail.ru`, `private.coffee`, `Kumi`), with a 30 s timeout per mirror.
+* **Two-Phase Fetching**: Cities and towns are fetched first; villages and hamlets are fetched separately and degrade gracefully, so a single oversized query can no longer come back as a silent empty list.
+* **Area-Density Sampling**: The selection is cut into equal-area cells and each populated cell contributes at most one town, so the exported density is uniform across the map instead of following real-world population.
+* **Population-Driven Sizing**: Population only decides *which* town represents a cell and *how big* it becomes, so an urban agglomeration still stands out by the size of its town while the countryside keeps its small villages.
+* **Smart `city` Flag**: `city: true` is set for OSM `place=city` nodes. Districts (`place=suburb` / `quarter` / `neighbourhood`) are not exported as separate towns.
 
 #### 5. 📦 Multiple Export Formats & One-Click ZIP Packaging
 
@@ -97,25 +99,18 @@ OpenTTD Heightmap Generator is a modern, high-precision web tool designed to gen
 
 (You could check them on https://github.com/bunburya/bother)
 
-#### 7. Population Scale
+#### 7. Population Range & Curve
 
-*  Multiplies real-world OpenStreetMap population figures by the specified scale factor to convert them into balanced starting populations for OpenTTD.
-* **Calculation Formula**:
+* The selected towns are mapped onto the range you set, instead of being multiplied by one constant. Real population is extremely long-tailed, so a plain multiplier either let a single metropolis swallow the map or left every village invisible - which is what made the old "population scale" impossible to tune.
+* **Smallest village / Largest city (in-game pop)**: the two endpoints of the output range. Defaults `60` and `30000`.
+* **Curve**:
+* **Log compressed (default)**: `t = (ln p - ln p10) / (ln p90 - ln p10)`, then `out = exp(ln min + t * (ln max - ln min))`. Town order is preserved and the long tail is flattened.
+* **Linear**: `out = p * max / p90`, clamped to the same range. Keeps real-world ratios, normalised so that the 90th percentile reaches the maximum.
+* Missing `population` tags fall back to a small, honest default per place class (`city 50000`, `town 10000`, `village 1000`, `hamlet 200`). Ambiguous values such as `1000-2000` or `约 1.2 万` are ignored instead of being guessed at.
 
-$$\text{In-Game Population} = \text{Real OSM Population} \times \text{Population Scale}$$
+#### 8. Target Town Count & Settlement Floor
 
-
-* **Examples**:
-* **Example 1 (Scale = `0.01` / 1%)**: Real metropolis with **1,000,000** residents becomes $1,000,000 \times 0.01 = 10,000$ in-game population; town of **50,000** becomes $500$.
-* **Example 2 (Scale = `0.05` / 5%)**: A city with **1,000,000** residents yields $50,000$ in-game population.
-* **Example 3 (Scale = `0.001` / 0.1%)**: A city of **1,000,000** becomes $1,000$ residents; town of **50,000** shrinks to $50$.
-
-
-
-#### 8. Town Filtering Threshold
-
-*  Filters out small settlements or low-priority nodes based on population size or administrative rank to prevent map clutter.
-* **Threshold Values (`0`, `0.5`, `1`)**:
-* **Set to `1` (Keep All)**: Retains 100% of OSM nodes in the selection (including small villages, tiny hamlets, and farmsteads).
-* **Set to `0.5` (Balanced Clean-up)**: Automatically purges minor hamlets, keeping medium-to-large towns and main cities intact.
-* **Set to `0` ( Major Cities Only)**: Strips away almost all minor towns to keep only top-tier urban centers.
+* **Target town count** (default `64`): the selection is cut into roughly this many equal-area cells, and each populated cell yields exactly one town - its most populous candidate. The count is something you choose, not a side effect of a threshold.
+* **Settlement floor** (default `Any`): drops settlements below a real-world population. This is what stops deserts, oceans and unpopulated land from spawning a grid of hamlets - cells with nothing above the floor simply stay empty, and their quota is not redistributed to other cells.
+* **Result**: town density is roughly uniform across the map, while urban agglomerations are distinguished by the *size* of their representative town rather than by crowding the map with extra towns.
+* The status line above the export buttons reports what actually happened, e.g. `Target 64 - actual 51 - candidates 12842 - 13/64 cells have no settlement` and `Population 120 - 30000 (median 640) - 12 city/cities`.
