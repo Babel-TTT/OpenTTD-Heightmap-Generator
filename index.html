@@ -826,8 +826,8 @@
         btnDownloadPng: "Download Heightmap PNG",
         fetchingTowns: "Fetching towns...",
         errFetchHeightmap: "Failed to fetch terrain data, please check your network connection.",
-        errFetchTowns: "Failed to fetch town nodes, please try again later.",
-        errFetchTownsPartial: "Village data could not be fetched; this export contains cities and towns only.",
+        errFetchTowns: "Failed to fetch town nodes even at the smallest query. Raise \"Minimum settlement population\", narrow the selection, or try again later.",
+        errFetchTownsPartial: "Some settlement tiers could not be fetched; the export contains only the larger ones.",
         errNoSettlement: "No settlement was found in this selection.",
         townStatus: "Target {t} · actual {n} · candidates {c} · {e}/{cells} cells have no settlement",
         townStatusPop: "Population {min} – {max} (median {med}) · {city} city/cities",
@@ -901,8 +901,8 @@
         btnDownloadPng: "下载高度图 PNG",
         fetchingTowns: "抓取城镇中...",
         errFetchHeightmap: "获取地形数据失败，请检查网络后再试。",
-        errFetchTowns: "获取城镇节点失败，请稍后再试。",
-        errFetchTownsPartial: "村镇数据获取失败,本次导出仅包含城市与城镇。",
+        errFetchTowns: "连最小范围的城镇查询都失败了。请把「最小聚落人口」调高、缩小选区,或稍后重试。",
+        errFetchTownsPartial: "部分等级的聚落数据获取失败,本次导出只包含较大的那些。",
         errNoSettlement: "选区内没有找到居住点。",
         townStatus: "目标 {t} · 实际 {n} · 候选 {c} · {e}/{cells} 格无居住点",
         townStatusPop: "人口 {min} – {max}(中位 {med})· 城市 {city} 个",
@@ -976,8 +976,8 @@
         btnDownloadPng: "ハイトマップ PNG をダウンロード",
         fetchingTowns: "街データを取得中...",
         errFetchHeightmap: "地形データの取得に失敗しました。ネットワーク接続を確認してください。",
-        errFetchTowns: "街ノードの取得に失敗しました。後ほど再試行してください。",
-        errFetchTownsPartial: "村落データの取得に失敗しました。今回は都市と町のみを出力します。",
+        errFetchTowns: "最小構成のクエリでも失敗しました。「最小集落人口」を上げるか、選択範囲を狭めるか、時間をおいて再試行してください。",
+        errFetchTownsPartial: "一部の集落階層を取得できませんでした。今回は大きい集落のみ出力します。",
         errNoSettlement: "選択範囲に集落が見つかりませんでした。",
         townStatus: "目標 {t} · 実績 {n} · 候補 {c} · {e}/{cells} マスは集落なし",
         townStatusPop: "人口 {min} – {max}(中央値 {med})· 都市 {city} 件",
@@ -1855,6 +1855,10 @@
     // A single Overpass call can hang for minutes on a loaded mirror (measured: 70-200 s), so
     // every attempt is aborted after this long and the next mirror is tried.
     const CM_OVERPASS_TIMEOUT_MS = 30000;
+    // The town queries are tiny in results but the mirrors are slow: a bare `place=city` box took
+    // 27-40 s to answer during testing, so the 30 s mask timeout aborted every town query before the
+    // server even replied. Town queries therefore get their own, longer budget.
+    const TOWN_OVERPASS_TIMEOUT_MS = 90000;
     // Order matters: the first endpoint that answers wins, so the ones that answered fastest in
     // practice come first (overpass.kumi.ai no longer resolves at all and stays last).
     const CM_OVERPASS_ENDPOINTS = [
@@ -1876,12 +1880,12 @@
      *                    The empty answer is still reported if every mirror agrees.
      * @returns {{status:'ok'|'empty'|'failed', data:?object, remark:?string}}
      */
-    async function overpassQueryFull(query, retryEmpty = false) {
+    async function overpassQueryFull(query, retryEmpty = false, timeoutMs = CM_OVERPASS_TIMEOUT_MS) {
       let emptyResult = null;
       let lastRemark = null;
       for (const endpoint of CM_OVERPASS_ENDPOINTS) {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), CM_OVERPASS_TIMEOUT_MS);
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
         try {
           const res = await fetch(endpoint, {
             method: 'POST',
@@ -2717,41 +2721,53 @@
       const bbox = `${s.toFixed(6)},${w.toFixed(6)},${n.toFixed(6)},${e.toFixed(6)}`;
       const span = Math.max(Math.abs(n - s), Math.abs(e - w));
 
-      // Two queries instead of one. `city`/`town` alone is a small payload that nearly always
-      // succeeds, while the village/hamlet payload is what used to push a large selection over
-      // Overpass' limits and come back as a silent empty answer. Losing the second query now
-      // degrades the result and says so, instead of failing the whole export.
-      const major = await overpassQueryFull(
-        `[out:json][timeout:90][maxsize:1073741824];node["place"~"^(city|town)$"](${bbox});out body;`);
+      // Server-side pre-filtering. Overpass times out on the PAYLOAD, not on the bbox, so the
+      // cheapest fix is to ask for fewer nodes: an OSM `population` above the requested minimum,
+      // or no population tag at all (village nodes very often have none). Everything is re-checked
+      // client side afterwards, so the filter can only ever narrow the request.
+      const popFilter = minPop > 0 ? `["population"!~"^[0-9]*$"]["population"!~"^[0-9]+$"]` : '';
+      const townQuery = (placeRe) =>
+        `[out:json][timeout:120][maxsize:536870912];` +
+        `node["place"~"^(${placeRe})$"]${popFilter}(${bbox});out body;`;
 
-      const fail = () => {
-        if (!silent) {
-          alert(i18n[currentLang].errFetchTowns);
-          btn.innerText = i18n[currentLang].btnExportTowns;
-          btn.disabled = false;
+      // Query tiers, most valuable first. A big selection used to fail as a whole because the
+      // first query timed out, even though its answer could have been assembled from cheaper
+      // tiers. Now each tier is optional: whatever succeeds is merged, and the result says which
+      // tiers were lost.
+      const tiers = [
+        { name: 'major', places: 'city', essential: true },
+        { name: 'town', places: 'town' },
+        { name: 'village', places: 'village' }
+      ];
+      if (span <= 0.5) tiers.push({ name: 'hamlet', places: 'hamlet' });
+
+      const elements = [];
+      const lostTiers = [];
+      for (const tier of tiers) {
+        const res = await overpassQueryFull(townQuery(tier.places), false, TOWN_OVERPASS_TIMEOUT_MS);
+        if (res.status === 'failed') {
+          console.warn(`Town tier "${tier.name}" failed:`, res.remark);
+          lostTiers.push(tier.name);
+          // An essential tier failing no longer aborts the export: the remaining tiers still
+          // produce a usable (if sparser) map, and the status line names what was lost.
+          if (tier.essential) {
+            console.warn('The city tier could not be fetched; continuing with the other tiers.');
+          }
+          continue;
         }
-      };
-      if (major.status === 'failed') {
-        console.warn('Town query failed:', major.remark);
-        fail();
-        return;
-      }
-
-      let elements = (major.data && major.data.elements) || [];
-      let partial = false;
-
-      // The span grading mirrors the coast-mask thresholds instead of inventing a second set.
-      const minorPlace = span <= 0.35 ? 'village|hamlet' : (span <= 1.5 ? 'village' : null);
-      if (minorPlace) {
-        const minor = await overpassQueryFull(
-          `[out:json][timeout:90][maxsize:1073741824];node["place"~"^(${minorPlace})$"](${bbox});out body;`);
-        if (minor.status === 'failed') {
-          console.warn('Village query failed; exporting cities and towns only:', minor.remark);
-          partial = true;
-        } else if (minor.data && Array.isArray(minor.data.elements)) {
-          elements = elements.concat(minor.data.elements);
+        const got = (res.data && res.data.elements) || [];
+        console.log(`Town tier "${tier.name}": ${got.length} nodes`);
+        for (const el of got) elements.push(el);
+        // A tier that comes back full-size means the ring below it is only going to be bigger;
+        // stopping here keeps a huge selection from burning four timeouts in a row.
+        if (got.length > 20000) {
+          console.warn(`Town tier "${tier.name}" returned ${got.length} nodes; skipping the finer tiers.`);
+          break;
         }
       }
+      // Village/hamlet are enrichment only: if any of them was lost the export still works but
+      // says so, instead of silently returning a cities-only map.
+      const partial = lostTiers.length > 0;
 
       if (elements.length > TOWN_MAX_CANDIDATES) {
         console.warn(`Town candidates truncated from ${elements.length} to ${TOWN_MAX_CANDIDATES}.`);
